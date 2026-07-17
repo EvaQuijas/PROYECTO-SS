@@ -1,0 +1,1709 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Auditorías</title>
+    
+    <!-- Librería para exportar a Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        /* ========== ESTILOS GLOBALES ========== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* ========== LOGIN ========== */
+        #loginView {
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 500px;
+            justify-content: center;
+        }
+
+        #loginView .logo {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1a237e;
+            margin-bottom: 30px;
+        }
+
+        .login-box {
+            width: 100%;
+            max-width: 380px;
+        }
+
+        .login-box input {
+            width: 100%;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .login-box input:focus {
+            outline: none;
+            border-color: #1a237e;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            background: #1a237e;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            background: #0d1457;
+        }
+
+        .btn-secondary {
+            background: #e8eaf6;
+            color: #1a237e;
+        }
+
+        .btn-secondary:hover {
+            background: #c5cae9;
+        }
+
+        .btn-danger {
+            background: #d32f2f;
+        }
+
+        .btn-danger:hover {
+            background: #b71c1c;
+        }
+
+        .btn-success {
+            background: #388e3c;
+        }
+
+        .btn-success:hover {
+            background: #2e7d32;
+        }
+
+        .btn-warning {
+            background: #f57c00;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #e65100;
+        }
+
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 14px;
+        }
+
+        .btn-full {
+            width: 100%;
+            justify-content: center;
+        }
+
+        /* ========== HEADER COMÚN ========== */
+        .header {
+            background: #1a237e;
+            color: white;
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .header .user-info span {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+
+        .header .user-info button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .header .user-info button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        /* ========== TABS ========== */
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: #f5f5f5;
+            padding: 0 24px;
+            border-bottom: 2px solid #e0e0e0;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab:hover {
+            color: #1a237e;
+        }
+
+        .tab.active {
+            color: #1a237e;
+            border-bottom-color: #1a237e;
+        }
+
+        /* ========== CONTENIDO ========== */
+        .content {
+            padding: 24px;
+            display: none;
+        }
+
+        .content.active {
+            display: block;
+        }
+
+        /* ========== CALENDARIO ========== */
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: 80px repeat(5, 1fr);
+            gap: 2px;
+            background: #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            background: #f5f5f5;
+            padding: 10px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .calendar-cell {
+            background: white;
+            padding: 8px;
+            min-height: 60px;
+            position: relative;
+        }
+
+        .calendar-cell.time-label {
+            background: #fafafa;
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .slot {
+            background: #e0e0e0;
+            border-radius: 4px;
+            padding: 4px 6px;
+            margin: 2px 0;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .slot:hover {
+            transform: scale(1.02);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .slot.available {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .slot.available:hover {
+            background: #bdbdbd;
+        }
+
+        .slot.occupied {
+            color: white;
+            font-weight: 500;
+        }
+
+        .slot .lock {
+            margin-right: 3px;
+        }
+
+        /* ========== PROGRAMAS ========== */
+        .program-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 16px 0;
+        }
+
+        .program-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f5f5f5;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        .program-color-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+        }
+
+        .program-item .remove {
+            cursor: pointer;
+            color: #999;
+            margin-left: 4px;
+        }
+
+        .program-item .remove:hover {
+            color: #d32f2f;
+        }
+
+        /* ========== MODALES ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #1a237e;
+        }
+
+        .modal h3 {
+            margin: 12px 0 8px;
+            color: #333;
+        }
+
+        .modal label {
+            display: block;
+            font-weight: 500;
+            margin: 12px 0 4px;
+            font-size: 14px;
+        }
+
+        .modal input, .modal select, .modal textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .modal .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .modal .btn-group .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .modal .info-box {
+            background: #f5f5f5;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 12px 0;
+        }
+
+        .modal .info-box .label {
+            font-weight: 600;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .modal .info-box .value {
+            font-size: 15px;
+            margin-top: 4px;
+        }
+
+        /* ========== AVISOS ========== */
+        .announcement {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .announcement .date {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* ========== HISTORIAL / CITAS ========== */
+        .cita-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .cita-item .info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .cita-item .badge {
+            padding: 2px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .badge-asistio {
+            background: #4caf50;
+        }
+
+        .badge-inasistencia {
+            background: #f44336;
+        }
+
+        .badge-cancelada {
+            background: #ff9800;
+        }
+
+        .badge-pendiente {
+            background: #2196f3;
+        }
+
+        .historial-actions {
+            display: flex;
+            gap: 12px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+
+        /* ========== UTILITIES ========== */
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .mt-16 { margin-top: 16px; }
+        .mb-16 { margin-bottom: 16px; }
+        .gap-8 { gap: 8px; }
+        .text-center { text-align: center; }
+        .text-muted { color: #888; font-size: 13px; }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 768px) {
+            .calendar-grid {
+                grid-template-columns: 60px repeat(5, 1fr);
+                font-size: 11px;
+            }
+            
+            .slot {
+                font-size: 9px;
+                padding: 2px 4px;
+            }
+            
+            .header h1 {
+                font-size: 16px;
+            }
+            
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .cita-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container" id="app">
+
+    <!-- ========================================== -->
+    <!-- VISTA 1: LOGIN                             -->
+    <!-- ========================================== -->
+    <div id="loginView">
+        <div class="logo">📋 Auditorías</div>
+        <div class="login-box">
+            <input type="email" id="loginEmail" placeholder="correo@institucion.edu" value="coordinador@institucion.edu">
+            <input type="password" id="loginPassword" placeholder="Contraseña" value="123456">
+            <button class="btn btn-full" onclick="login()">Iniciar sesión</button>
+            <p style="margin-top:12px;font-size:13px;color:#888;text-align:center;">
+                <strong>Demo:</strong> coordinador@institucion.edu / alumno@institucion.edu
+            </p>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 2: COORDINADOR                       -->
+    <!-- ========================================== -->
+    <div id="coordinadorView" style="display:none;">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📋 Sistema de Gestión de Auditorías</h1>
+            <div class="user-info">
+                <span>👤 Coordinador: Oscar</span>
+                <button onclick="logout()">Cerrar sesión</button>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('coordinador', 'calendario')">📅 Calendario</button>
+            <button class="tab" onclick="switchTab('coordinador', 'programas')">📊 Programas</button>
+            <button class="tab" onclick="switchTab('coordinador', 'avisos')">📢 Avisos</button>
+            <button class="tab" onclick="switchTab('coordinador', 'historial')">📜 Historial</button>
+        </div>
+
+        <!-- CONTENIDO: Calendario -->
+        <div id="coordinador-calendario" class="content active">
+            <div class="flex-between mb-16">
+                <div>
+                    <strong>Semana:</strong> <span id="currentWeek">12 - 16 de julio, 2026</span>
+                </div>
+                <div>
+                    <button class="btn btn-secondary btn-sm" onclick="openModal('modalRango')">➕ Generar rango</button>
+                    <button class="btn btn-secondary btn-sm" onclick="openModal('modalEliminar')">🗑️ Eliminar slots</button>
+                </div>
+            </div>
+
+            <!-- CALENDARIO -->
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Los slots se generan con JavaScript -->
+            </div>
+
+            <!-- Leyenda -->
+            <div id="legend" style="display:flex;gap:16px;flex-wrap:wrap;padding:8px 0;border-top:2px solid #e0e0e0;">
+                <!-- Generado por JS -->
+            </div>
+            
+            <div class="text-muted mt-16">
+                💡 Haz clic en un slot <strong>gris</strong> para reservar (alumno) o en un slot <strong>de color</strong> para gestionar (coordinador)
+            </div>
+        </div>
+
+        <!-- CONTENIDO: Programas -->
+        <div id="coordinador-programas" class="content">
+            <div class="flex-between mb-16">
+                <h3>Programas académicos</h3>
+                <button class="btn btn-secondary btn-sm" onclick="openModal('modalPrograma')">➕ Nuevo programa</button>
+            </div>
+            <div class="program-list" id="programList">
+                <!-- Generado por JS -->
+            </div>
+            <p class="text-muted">Los programas desactivados no aparecen en el calendario, pero se conservan en el historial.</p>
+        </div>
+
+        <!-- CONTENIDO: Avisos -->
+        <div id="coordinador-avisos" class="content">
+            <div class="flex-between mb-16">
+                <h3>Avisos publicados</h3>
+                <button class="btn btn-secondary btn-sm" onclick="openModal('modalAviso')">📢 Nuevo aviso</button>
+            </div>
+            <div id="announcementsList">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+
+        <!-- CONTENIDO: Historial -->
+        <div id="coordinador-historial" class="content">
+            <div class="flex-between mb-16">
+                <h3>Historial de citas</h3>
+                <div class="historial-actions">
+                    <button class="btn btn-success btn-sm" onclick="exportToExcel()">📊 Exportar a Excel</button>
+                    <button class="btn btn-danger btn-sm" onclick="clearHistory()">🗑️ Limpiar historial</button>
+                </div>
+            </div>
+            <div id="historyList">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VISTA 3: ALUMNO                           -->
+    <!-- ========================================== -->
+    <div id="alumnoView" style="display:none;">
+        <!-- HEADER -->
+        <div class="header">
+            <h1>📋 Sistema de Gestión de Auditorías</h1>
+            <div class="user-info">
+                <span>👤 Alumno: <span id="alumnoName">Ana</span></span>
+                <button onclick="logout()">Cerrar sesión</button>
+            </div>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('alumno', 'calendario')">📅 Calendario</button>
+            <button class="tab" onclick="switchTab('alumno', 'citas')">📋 Mis citas</button>
+            <button class="tab" onclick="switchTab('alumno', 'avisos')">📢 Avisos</button>
+        </div>
+
+        <!-- CONTENIDO: Calendario -->
+        <div id="alumno-calendario" class="content active">
+            <div class="flex-between mb-16">
+                <div>
+                    <strong>Semana:</strong> <span id="alumnoWeek">12 - 16 de julio, 2026</span>
+                </div>
+                <div>
+                    <span class="text-muted">Selecciona un slot gris para reservar</span>
+                </div>
+            </div>
+
+            <div class="calendar-grid" id="alumnoCalendarGrid">
+                <!-- Generado por JS -->
+            </div>
+
+            <div id="alumnoLegend" style="display:flex;gap:16px;flex-wrap:wrap;padding:8px 0;border-top:2px solid #e0e0e0;">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+
+        <!-- CONTENIDO: Mis citas -->
+        <div id="alumno-citas" class="content">
+            <h3>Mis citas programadas</h3>
+            <div id="alumnoCitasList">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+
+        <!-- CONTENIDO: Avisos -->
+        <div id="alumno-avisos" class="content">
+            <h3>Avisos</h3>
+            <div id="alumnoAnnouncements">
+                <!-- Generado por JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- MODALES                                    -->
+    <!-- ========================================== -->
+
+    <!-- MODAL: Gestión de cita (Coordinador) -->
+    <div class="modal-overlay" id="modalGestionCita">
+        <div class="modal">
+            <h2>📋 Gestión de cita</h2>
+            <div class="info-box">
+                <div class="label">Alumno:</div>
+                <div class="value" id="gestionAlumno">-</div>
+                <div class="label" style="margin-top:8px;">Programa:</div>
+                <div class="value" id="gestionPrograma">-</div>
+                <div class="label" style="margin-top:8px;">Fecha y hora:</div>
+                <div class="value" id="gestionFecha">-</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;margin:16px 0;">
+                <button class="btn btn-danger" onclick="registrarInasistencia()">❌ Registrar inasistencia</button>
+                <button class="btn btn-success" onclick="registrarAsistencia()">✅ Registrar asistencia</button>
+                <button class="btn btn-warning" onclick="cancelarCita()">🚫 Cancelar cita (notificar al alumno)</button>
+            </div>
+            <button class="btn btn-secondary btn-full" onclick="closeModal('modalGestionCita')">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- MODAL: Reservar cita (Alumno) -->
+    <div class="modal-overlay" id="modalReserva">
+        <div class="modal">
+            <h2>📅 Reservar cita</h2>
+            <div class="info-box">
+                <div class="label">Fecha y hora:</div>
+                <div class="value" id="reservaFecha">-</div>
+            </div>
+            <label>Programa:</label>
+            <select id="reservaPrograma">
+                <!-- Generado por JS -->
+            </select>
+            <p style="margin-top:12px;font-size:13px;color:#888;">El slot se pintará del color de tu programa y aparecerá tu nombre.</p>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalReserva')">Cancelar</button>
+                <button class="btn" onclick="confirmarReserva()">Confirmar reserva</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Agendar cita manual (Coordinador) -->
+    <div class="modal-overlay" id="modalAgendarManual">
+        <div class="modal">
+            <h2>Agendar cita manual</h2>
+            <div class="info-box">
+                <div class="label">Fecha y hora:</div>
+                <div class="value" id="agendarFecha">-</div>
+            </div>
+            <label>Alumno (correo o nombre):</label>
+            <input type="text" id="agendarAlumno" placeholder="Ej. ana@institucion.edu o Ana Pérez">
+            <label>Programa:</label>
+            <select id="agendarPrograma">
+                <!-- Generado por JS -->
+            </select>
+            <p style="margin-top:12px;font-size:13px;color:#888;">El slot se pintará del color del programa seleccionado.</p>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalAgendarManual')">Cancelar</button>
+                <button class="btn" onclick="confirmarAgendarManual()">Agendar cita</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Generar rango -->
+    <div class="modal-overlay" id="modalRango">
+        <div class="modal">
+            <h2>⚙️ Generar slots automáticos</h2>
+            <label>Rango horario:</label>
+            <div style="display:flex;gap:8px;">
+                <input type="time" id="rangoInicio" value="08:00" style="flex:1;">
+                <span>a</span>
+                <input type="time" id="rangoFin" value="13:00" style="flex:1;">
+            </div>
+            <label>Duración:</label>
+            <select id="rangoDuracion">
+                <option value="15">15 minutos</option>
+                <option value="20" selected>20 minutos</option>
+                <option value="30">30 minutos</option>
+                <option value="45">45 minutos</option>
+                <option value="60">60 minutos</option>
+            </select>
+            <label>Días:</label>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;margin:8px 0;">
+                <label><input type="checkbox" class="dia-semana" value="1" checked> Lun</label>
+                <label><input type="checkbox" class="dia-semana" value="2" checked> Mar</label>
+                <label><input type="checkbox" class="dia-semana" value="3" checked> Mié</label>
+                <label><input type="checkbox" class="dia-semana" value="4" checked> Jue</label>
+                <label><input type="checkbox" class="dia-semana" value="5" checked> Vie</label>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalRango')">Cancelar</button>
+                <button class="btn" onclick="generarRango()">Generar slots</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Eliminar slots -->
+    <div class="modal-overlay" id="modalEliminar">
+        <div class="modal">
+            <h2>🗑️ Eliminar slots</h2>
+            <label><input type="radio" name="eliminar" value="individual" checked> Slot individual (seleccionar en calendario)</label>
+            <label><input type="radio" name="eliminar" value="rango"> Por rango horario</label>
+            <div style="margin-left:24px;margin-top:8px;display:none;" id="eliminarRangoOptions">
+                <input type="time" id="eliminarInicio" value="08:00" style="width:auto;"> a <input type="time" id="eliminarFin" value="13:00" style="width:auto;">
+                <div style="margin:8px 0;">
+                    <label><input type="checkbox" class="eliminar-dia" value="1"> Lun</label>
+                    <label><input type="checkbox" class="eliminar-dia" value="2"> Mar</label>
+                    <label><input type="checkbox" class="eliminar-dia" value="3"> Mié</label>
+                    <label><input type="checkbox" class="eliminar-dia" value="4"> Jue</label>
+                    <label><input type="checkbox" class="eliminar-dia" value="5"> Vie</label>
+                </div>
+            </div>
+            <label><input type="radio" name="eliminar" value="dia"> Día completo: <select id="eliminarDia"><option value="1">Lunes</option><option value="2">Martes</option><option value="3">Miércoles</option><option value="4">Jueves</option><option value="5">Viernes</option></select></label>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalEliminar')">Cancelar</button>
+                <button class="btn btn-danger" onclick="eliminarSlots()">Eliminar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nuevo programa -->
+    <div class="modal-overlay" id="modalPrograma">
+        <div class="modal">
+            <h2>➕ Nuevo programa</h2>
+            <label>Nombre del programa:</label>
+            <input type="text" id="nuevoProgramaNombre" placeholder="Ej. Prácticas Profesionales">
+            <label>Color:</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;">
+                <input type="color" id="nuevoProgramaColor" value="#9c27b0" style="width:60px;height:40px;cursor:pointer;">
+                <span class="text-muted" style="align-self:center;">Selecciona un color para identificar el programa</span>
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalPrograma')">Cancelar</button>
+                <button class="btn" onclick="crearPrograma()">Crear programa</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nuevo aviso -->
+    <div class="modal-overlay" id="modalAviso">
+        <div class="modal">
+            <h2>📢 Nuevo aviso</h2>
+            <label>Título:</label>
+            <input type="text" id="nuevoAvisoTitulo" placeholder="Título del aviso">
+            <label>Contenido:</label>
+            <textarea id="nuevoAvisoContenido" rows="4" placeholder="Escribe el mensaje..."></textarea>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalAviso')">Cancelar</button>
+                <button class="btn" onclick="publicarAviso()">Publicar aviso</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ========================================== -->
+<!-- JAVASCRIPT                                 -->
+<!-- ========================================== -->
+<script>
+    // ========== DATOS EN MEMORIA (localStorage) ==========
+    // Inicializar datos si no existen
+    function initData() {
+        if (!localStorage.getItem('slots')) {
+            const slotsIniciales = generarSlotsIniciales();
+            localStorage.setItem('slots', JSON.stringify(slotsIniciales));
+        }
+        if (!localStorage.getItem('programas')) {
+            const programas = [
+                { id: 'p1', nombre: 'Innovación', color: '#1976d2', activo: true },
+                { id: 'p2', nombre: 'Emprendimiento', color: '#388e3c', activo: true },
+                { id: 'p3', nombre: 'Servicio Social', color: '#d32f2f', activo: true },
+                { id: 'p4', nombre: 'Titulación', color: '#f57c00', activo: true }
+            ];
+            localStorage.setItem('programas', JSON.stringify(programas));
+        }
+        if (!localStorage.getItem('historial')) {
+            localStorage.setItem('historial', JSON.stringify([]));
+        }
+        if (!localStorage.getItem('avisos')) {
+            const avisos = [
+                { id: 'a1', titulo: 'Recordatorio: entrega de reportes', contenido: 'Los reportes de auditoría deben entregarse antes del viernes 16 de julio.', fecha: '2026-07-10' },
+                { id: 'a2', titulo: 'Cambio de horario', contenido: 'El rango de 13:00 - 15:00 se eliminará a partir de la próxima semana.', fecha: '2026-07-08' }
+            ];
+            localStorage.setItem('avisos', JSON.stringify(avisos));
+        }
+    }
+
+    function generarSlotsIniciales() {
+        const slots = [];
+        const dias = [1, 2, 3, 4, 5]; // Lun-Vie
+        const horas = [8, 9, 10, 11, 12];
+        const alumnos = [
+            { nombre: 'Ana', programa: 'p1', color: '#1976d2' },
+            { nombre: 'Carlos', programa: 'p2', color: '#388e3c' },
+            { nombre: 'Luis', programa: 'p3', color: '#d32f2f' },
+            { nombre: 'María', programa: 'p4', color: '#f57c00' }
+        ];
+        let idx = 0;
+        for (let d of dias) {
+            for (let h of horas) {
+                const slot = {
+                    id: `s-${d}-${h}`,
+                    dia: d,
+                    hora: h,
+                    minuto: 0,
+                    duracion: 20,
+                    disponible: true,
+                    alumno: null,
+                    programaId: null,
+                    color: null
+                };
+                // Ocupar algunos slots
+                if (idx < alumnos.length) {
+                    slot.disponible = false;
+                    slot.alumno = alumnos[idx].nombre;
+                    slot.programaId = alumnos[idx].programa;
+                    slot.color = alumnos[idx].color;
+                    idx++;
+                }
+                slots.push(slot);
+            }
+        }
+        return slots;
+    }
+
+    // ========== FUNCIONES DE ACCESO A DATOS ==========
+    function getSlots() {
+        return JSON.parse(localStorage.getItem('slots')) || [];
+    }
+
+    function saveSlots(slots) {
+        localStorage.setItem('slots', JSON.stringify(slots));
+    }
+
+    function getProgramas() {
+        return JSON.parse(localStorage.getItem('programas')) || [];
+    }
+
+    function saveProgramas(programas) {
+        localStorage.setItem('programas', JSON.stringify(programas));
+    }
+
+    function getHistorial() {
+        return JSON.parse(localStorage.getItem('historial')) || [];
+    }
+
+    function saveHistorial(historial) {
+        localStorage.setItem('historial', JSON.stringify(historial));
+    }
+
+    function getAvisos() {
+        return JSON.parse(localStorage.getItem('avisos')) || [];
+    }
+
+    function saveAvisos(avisos) {
+        localStorage.setItem('avisos', JSON.stringify(avisos));
+    }
+
+    function getProgramaById(id) {
+        return getProgramas().find(p => p.id === id);
+    }
+
+    // ========== LOGIN / LOGOUT ==========
+    let currentUser = null;
+
+    function login() {
+        const email = document.getElementById('loginEmail').value;
+        
+        if (email.includes('coordinador')) {
+            currentUser = { email, role: 'coordinador', nombre: 'Oscar' };
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('coordinadorView').style.display = 'block';
+            document.getElementById('alumnoView').style.display = 'none';
+            renderizarTodo();
+        } else if (email.includes('alumno')) {
+            currentUser = { email, role: 'alumno', nombre: 'Ana' };
+            document.getElementById('loginView').style.display = 'none';
+            document.getElementById('coordinadorView').style.display = 'none';
+            document.getElementById('alumnoView').style.display = 'block';
+            renderizarTodo();
+        } else {
+            alert('❌ Credenciales inválidas. Usa: coordinador@institucion.edu o alumno@institucion.edu');
+        }
+    }
+
+    function logout() {
+        currentUser = null;
+        document.getElementById('loginView').style.display = 'flex';
+        document.getElementById('coordinadorView').style.display = 'none';
+        document.getElementById('alumnoView').style.display = 'none';
+    }
+
+    // ========== TABS ==========
+    function switchTab(role, tabName) {
+        const prefix = role === 'coordinador' ? 'coordinador-' : 'alumno-';
+        
+        document.querySelectorAll(`#${role}View .content`).forEach(el => {
+            el.classList.remove('active');
+        });
+        
+        const target = document.getElementById(`${prefix}${tabName}`);
+        if (target) target.classList.add('active');
+        
+        document.querySelectorAll(`#${role}View .tab`).forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelectorAll(`#${role}View .tab`).forEach(tab => {
+            const text = tab.textContent;
+            if (text.includes('Calendario') && tabName === 'calendario' ||
+                text.includes('Programas') && tabName === 'programas' ||
+                text.includes('Avisos') && tabName === 'avisos' ||
+                text.includes('Historial') && tabName === 'historial' ||
+                text.includes('Mis citas') && tabName === 'citas') {
+                tab.classList.add('active');
+            }
+        });
+    }
+
+    // ========== MODALES ==========
+    function openModal(id) {
+        document.getElementById(id).classList.add('show');
+    }
+
+    function closeModal(id) {
+        document.getElementById(id).classList.remove('show');
+    }
+
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('show');
+            }
+        });
+    });
+
+    // ========== RENDERIZADO ==========
+    function renderizarTodo() {
+        renderizarCalendario();
+        renderizarProgramas();
+        renderizarAvisos();
+        renderizarHistorial();
+        renderizarCitasAlumno();
+        renderizarReservaProgramas();
+    }
+
+    function renderizarCalendario() {
+        const slots = getSlots();
+        const programas = getProgramas();
+        const grid = document.getElementById('calendarGrid');
+        const legend = document.getElementById('legend');
+        const alumnoGrid = document.getElementById('alumnoCalendarGrid');
+        const alumnoLegend = document.getElementById('alumnoLegend');
+
+        if (!grid) return;
+
+        // Agrupar por día
+        const dias = [1, 2, 3, 4, 5];
+        const horas = [];
+        for (let h = 8; h <= 12; h++) {
+            horas.push(h);
+        }
+
+        let html = `
+            <div class="calendar-header">Hora</div>
+            <div class="calendar-header">Lunes</div>
+            <div class="calendar-header">Martes</div>
+            <div class="calendar-header">Miércoles</div>
+            <div class="calendar-header">Jueves</div>
+            <div class="calendar-header">Viernes</div>
+        `;
+
+        for (let h of horas) {
+            html += `<div class="calendar-cell time-label">${h}:00</div>`;
+            for (let d of dias) {
+                const slot = slots.find(s => s.dia === d && s.hora === h);
+                let slotHtml = '';
+                if (slot) {
+                    if (slot.disponible) {
+                        slotHtml = `<div class="slot available" onclick="reservarSlot('${slot.id}')">${h}:00 - ${h}:${String(slot.duracion).padStart(2, '0')}</div>`;
+                    } else {
+                        const programa = getProgramaById(slot.programaId);
+                        const color = programa ? programa.color : slot.color;
+                        slotHtml = `<div class="slot occupied" style="background:${color};" onclick="gestionarCita('${slot.id}')">🔒 ${slot.alumno}</div>`;
+                    }
+                } else {
+                    slotHtml = `<div style="color:#ddd;font-size:10px;">—</div>`;
+                }
+                html += `<div class="calendar-cell">${slotHtml}</div>`;
+            }
+        }
+
+        grid.innerHTML = html;
+
+        // Leyenda
+        let legendHtml = `
+            <span><span style="display:inline-block;width:16px;height:16px;background:#e0e0e0;border-radius:4px;vertical-align:middle;"></span> Disponible</span>
+        `;
+        for (let p of programas) {
+            if (p.activo) {
+                legendHtml += `
+                    <span><span style="display:inline-block;width:16px;height:16px;background:${p.color};border-radius:4px;vertical-align:middle;"></span> ${p.nombre}</span>
+                `;
+            }
+        }
+        legend.innerHTML = legendHtml;
+
+        // Alumno: mismo calendario pero con opción de reservar
+        if (alumnoGrid) {
+            let alumnoHtml = `
+                <div class="calendar-header">Hora</div>
+                <div class="calendar-header">Lunes</div>
+                <div class="calendar-header">Martes</div>
+                <div class="calendar-header">Miércoles</div>
+                <div class="calendar-header">Jueves</div>
+                <div class="calendar-header">Viernes</div>
+            `;
+            for (let h of horas) {
+                alumnoHtml += `<div class="calendar-cell time-label">${h}:00</div>`;
+                for (let d of dias) {
+                    const slot = slots.find(s => s.dia === d && s.hora === h);
+                    let slotHtml = '';
+                    if (slot) {
+                        if (slot.disponible) {
+                            slotHtml = `<div class="slot available" onclick="reservarSlot('${slot.id}')">${h}:00 - ${h}:${String(slot.duracion).padStart(2, '0')}</div>`;
+                        } else {
+                            const programa = getProgramaById(slot.programaId);
+                            const color = programa ? programa.color : slot.color;
+                            slotHtml = `<div class="slot occupied" style="background:${color};">🔒 ${slot.alumno}</div>`;
+                        }
+                    } else {
+                        slotHtml = `<div style="color:#ddd;font-size:10px;">—</div>`;
+                    }
+                    alumnoHtml += `<div class="calendar-cell">${slotHtml}</div>`;
+                }
+            }
+            alumnoGrid.innerHTML = alumnoHtml;
+            alumnoLegend.innerHTML = legendHtml;
+        }
+    }
+
+    function renderizarProgramas() {
+        const programas = getProgramas();
+        const list = document.getElementById('programList');
+        if (!list) return;
+        
+        let html = '';
+        for (let p of programas) {
+            html += `
+                <div class="program-item">
+                    <span class="program-color-dot" style="background:${p.color};"></span>
+                    ${p.nombre} ${!p.activo ? '(Inactivo)' : ''}
+                    <span class="remove" onclick="${p.activo ? `togglePrograma('${p.id}')` : `eliminarPrograma('${p.id}')`}">${p.activo ? '✕' : '🗑️'}</span>
+                </div>
+            `;
+        }
+        list.innerHTML = html || '<p class="text-muted">No hay programas creados</p>';
+    }
+
+    function renderizarAvisos() {
+        const avisos = getAvisos();
+        const container = document.getElementById('announcementsList');
+        const alumnoContainer = document.getElementById('alumnoAnnouncements');
+        
+        const html = avisos.map(a => `
+            <div class="announcement">
+                <strong>${a.titulo}</strong>
+                <p>${a.contenido}</p>
+                <div class="date">Publicado: ${a.fecha}</div>
+            </div>
+        `).join('') || '<p class="text-muted">No hay avisos publicados</p>';
+        
+        if (container) container.innerHTML = html;
+        if (alumnoContainer) alumnoContainer.innerHTML = html;
+    }
+
+    function renderizarHistorial() {
+        const historial = getHistorial();
+        const container = document.getElementById('historyList');
+        if (!container) return;
+
+        if (historial.length === 0) {
+            container.innerHTML = '<p class="text-muted">No hay registros en el historial</p>';
+            return;
+        }
+
+        let html = '';
+        for (let h of historial) {
+            const badgeClass = h.estado === 'asistio' ? 'badge-asistio' : 
+                             h.estado === 'inasistencia' ? 'badge-inasistencia' : 'badge-cancelada';
+            html += `
+                <div class="cita-item">
+                    <div class="info">
+                        <span>📅 ${h.fecha}</span>
+                        <span>${h.alumno}</span>
+                        <span>${h.programa || 'Sin programa'}</span>
+                        <span class="badge ${badgeClass}">${h.estado}</span>
+                    </div>
+                    <span class="text-muted">${h.fechaRegistro}</span>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+
+    function renderizarCitasAlumno() {
+        const slots = getSlots();
+        const container = document.getElementById('alumnoCitasList');
+        if (!container) return;
+
+        // Asumimos que el alumno actual es "Ana"
+        const misSlots = slots.filter(s => !s.disponible && s.alumno === 'Ana');
+        
+        if (misSlots.length === 0) {
+            container.innerHTML = '<p class="text-muted">No tienes citas programadas</p>';
+            return;
+        }
+
+        let html = '';
+        for (let s of misSlots) {
+            const programa = getProgramaById(s.programaId);
+            html += `
+                <div class="cita-item">
+                    <div class="info">
+                        <span>📅 Día ${s.dia}, ${s.hora}:00</span>
+                        <span class="badge" style="background:${programa ? programa.color : '#888'};">${programa ? programa.nombre : 'Sin programa'}</span>
+                    </div>
+                    <span style="color:#4caf50;font-size:13px;">✅ Confirmada</span>
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    }
+
+    function renderizarReservaProgramas() {
+        const programas = getProgramas().filter(p => p.activo);
+        const select = document.getElementById('reservaPrograma');
+        if (!select) return;
+        select.innerHTML = programas.map(p => 
+            `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
+        ).join('');
+    }
+
+    // ========== COORDINADOR: GESTIÓN DE CITAS ==========
+    let slotEnGestion = null;
+
+    function gestionarCita(slotId) {
+        if (currentUser.role !== 'coordinador') return;
+        
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotId);
+        if (!slot || slot.disponible) return;
+
+        slotEnGestion = slotId;
+        const programa = getProgramaById(slot.programaId);
+        
+        document.getElementById('gestionAlumno').textContent = slot.alumno;
+        document.getElementById('gestionPrograma').textContent = programa ? programa.nombre : 'Sin programa';
+        document.getElementById('gestionFecha').textContent = `Día ${slot.dia}, ${slot.hora}:00`;
+        
+        openModal('modalGestionCita');
+    }
+
+    function registrarInasistencia() {
+        if (!slotEnGestion) return;
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotEnGestion);
+        if (!slot) return;
+
+        const programa = getProgramaById(slot.programaId);
+        const historial = getHistorial();
+        historial.push({
+            id: Date.now().toString(),
+            alumno: slot.alumno,
+            programa: programa ? programa.nombre : 'Sin programa',
+            fecha: `Día ${slot.dia}, ${slot.hora}:00`,
+            estado: 'inasistencia',
+            fechaRegistro: new Date().toLocaleString()
+        });
+        saveHistorial(historial);
+
+        // Liberar el slot
+        slot.disponible = true;
+        slot.alumno = null;
+        slot.programaId = null;
+        slot.color = null;
+        saveSlots(slots);
+
+        closeModal('modalGestionCita');
+        renderizarTodo();
+        alert('❌ Inasistencia registrada. El slot ha sido liberado.');
+    }
+
+    function registrarAsistencia() {
+        if (!slotEnGestion) return;
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotEnGestion);
+        if (!slot) return;
+
+        const programa = getProgramaById(slot.programaId);
+        const historial = getHistorial();
+        historial.push({
+            id: Date.now().toString(),
+            alumno: slot.alumno,
+            programa: programa ? programa.nombre : 'Sin programa',
+            fecha: `Día ${slot.dia}, ${slot.hora}:00`,
+            estado: 'asistio',
+            fechaRegistro: new Date().toLocaleString()
+        });
+        saveHistorial(historial);
+
+        // Liberar el slot
+        slot.disponible = true;
+        slot.alumno = null;
+        slot.programaId = null;
+        slot.color = null;
+        saveSlots(slots);
+
+        closeModal('modalGestionCita');
+        renderizarTodo();
+        alert('✅ Asistencia registrada. El slot ha sido liberado.');
+    }
+
+    function cancelarCita() {
+        if (!slotEnGestion) return;
+        if (!confirm('¿Estás seguro de cancelar esta cita? Se enviará notificación al alumno.')) return;
+
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotEnGestion);
+        if (!slot) return;
+
+        const programa = getProgramaById(slot.programaId);
+        const historial = getHistorial();
+        historial.push({
+            id: Date.now().toString(),
+            alumno: slot.alumno,
+            programa: programa ? programa.nombre : 'Sin programa',
+            fecha: `Día ${slot.dia}, ${slot.hora}:00`,
+            estado: 'cancelada',
+            fechaRegistro: new Date().toLocaleString()
+        });
+        saveHistorial(historial);
+
+        // Liberar el slot
+        slot.disponible = true;
+        slot.alumno = null;
+        slot.programaId = null;
+        slot.color = null;
+        saveSlots(slots);
+
+        closeModal('modalGestionCita');
+        renderizarTodo();
+        alert('🚫 Cita cancelada. El alumno ha sido notificado por correo.');
+    }
+
+    // ========== ALUMNO: RESERVAR ==========
+    let slotEnReserva = null;
+
+    function reservarSlot(slotId) {
+        if (currentUser.role !== 'alumno') {
+            alert('⚠️ Solo los alumnos pueden reservar slots.');
+            return;
+        }
+
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotId);
+        if (!slot || !slot.disponible) {
+            alert('⚠️ Este slot ya no está disponible.');
+            return;
+        }
+
+        slotEnReserva = slotId;
+        document.getElementById('reservaFecha').textContent = `Día ${slot.dia}, ${slot.hora}:00`;
+        openModal('modalReserva');
+    }
+
+    function confirmarReserva() {
+        if (!slotEnReserva) return;
+        
+        const programaId = document.getElementById('reservaPrograma').value;
+        const programa = getProgramaById(programaId);
+        if (!programa) {
+            alert('⚠️ Selecciona un programa válido.');
+            return;
+        }
+
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotEnReserva);
+        if (!slot || !slot.disponible) {
+            alert('⚠️ Este slot ya no está disponible.');
+            return;
+        }
+
+        slot.disponible = false;
+        slot.alumno = currentUser.nombre;
+        slot.programaId = programaId;
+        slot.color = programa.color;
+        saveSlots(slots);
+
+        closeModal('modalReserva');
+        slotEnReserva = null;
+        renderizarTodo();
+        alert(`✅ Cita reservada exitosamente para ${programa.nombre}!`);
+    }
+
+        // ========== COORDINADOR: AGENDAR CITA MANUAL ==========
+    let slotEnAgendaManual = null;
+
+    function agendarManual(slotId) {
+        if (currentUser.role !== 'coordinador') {
+            alert('Solo los coordinadores pueden agendar citas manualmente.');
+            return;
+        }
+
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotId);
+        if (!slot) {
+            alert('Este slot no existe.');
+            return;
+        }
+
+        if (!slot.disponible) {
+            alert('Este slot ya está ocupado. No se puede agendar manualmente.');
+            return;
+        }
+
+        slotEnAgendaManual = slotId;
+        document.getElementById('agendarFecha').textContent = `Dia ${slot.dia}, ${slot.hora}:00`;
+        
+        // Llenar select de programas
+        const programas = getProgramas().filter(p => p.activo);
+        const select = document.getElementById('agendarPrograma');
+        select.innerHTML = programas.map(p => 
+            `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
+        ).join('');
+        
+        openModal('modalAgendarManual');
+    }
+
+    function confirmarAgendarManual() {
+        if (!slotEnAgendaManual) return;
+        
+        const alumno = document.getElementById('agendarAlumno').value.trim();
+        const programaId = document.getElementById('agendarPrograma').value;
+        const programa = getProgramaById(programaId);
+        
+        if (!alumno) {
+            alert('Ingresa el nombre o correo del alumno.');
+            return;
+        }
+        
+        if (!programa) {
+            alert('Selecciona un programa válido.');
+            return;
+        }
+
+        const slots = getSlots();
+        const slot = slots.find(s => s.id === slotEnAgendaManual);
+        if (!slot || !slot.disponible) {
+            alert('Este slot ya no está disponible.');
+            return;
+        }
+
+        // Ocupar el slot
+        slot.disponible = false;
+        slot.alumno = alumno;
+        slot.programaId = programaId;
+        slot.color = programa.color;
+        slot.agendadoPor = 'coordinador'; // Marcar que fue agendado por coordinador
+        saveSlots(slots);
+
+        // Registrar en historial
+        const historial = getHistorial();
+        historial.push({
+            id: Date.now().toString(),
+            alumno: alumno,
+            programa: programa.nombre,
+            fecha: `Dia ${slot.dia}, ${slot.hora}:00`,
+            estado: 'agendada_por_coordinador',
+            fechaRegistro: new Date().toLocaleString(),
+            agendadoPor: 'coordinador'
+        });
+        saveHistorial(historial);
+
+        closeModal('modalAgendarManual');
+        slotEnAgendaManual = null;
+        document.getElementById('agendarAlumno').value = '';
+        renderizarTodo();
+        
+        alert('Cita agendada manualmente. El alumno ha sido notificado.');
+    }
+
+    // ========== COORDINADOR: GENERAR RANGO ==========
+    function generarRango() {
+        const inicio = document.getElementById('rangoInicio').value;
+        const fin = document.getElementById('rangoFin').value;
+        const duracion = parseInt(document.getElementById('rangoDuracion').value);
+        const dias = document.querySelectorAll('.dia-semana:checked');
+        
+        if (dias.length === 0) {
+            alert('⚠️ Selecciona al menos un día.');
+            return;
+        }
+
+        if (!inicio || !fin) {
+            alert('⚠️ Define el rango horario.');
+            return;
+        }
+
+        const [hInicio, mInicio] = inicio.split(':').map(Number);
+        const [hFin, mFin] = fin.split(':').map(Number);
+        
+        const slots = getSlots();
+        let nuevos = 0;
+
+        for (let d of dias) {
+            const dia = parseInt(d.value);
+            let hora = hInicio;
+            let minuto = mInicio;
+            
+            while (hora < hFin || (hora === hFin && minuto < mFin)) {
+                // Verificar si ya existe un slot en esa hora
+                const existe = slots.some(s => s.dia === dia && s.hora === hora && s.minuto === minuto);
+                if (!existe) {
+                    slots.push({
+                        id: `s-${dia}-${hora}-${minuto}-${Date.now()}`,
+                        dia: dia,
+                        hora: hora,
+                        minuto: minuto,
+                        duracion: duracion,
+                        disponible: true,
+                        alumno: null,
+                        programaId: null,
+                        color: null
+                    });
+                    nuevos++;
+                }
+                
+                minuto += duracion;
+                if (minuto >= 60) {
+                    hora++;
+                    minuto = minuto - 60;
+                }
+            }
+        }
+
+        saveSlots(slots);
+        closeModal('modalRango');
+        renderizarTodo();
+        alert(`✅ Se generaron ${nuevos} slots nuevos.`);
+    }
+
+    // ========== COORDINADOR: ELIMINAR SLOTS ==========
+    function eliminarSlots() {
+        const tipo = document.querySelector('input[name="eliminar"]:checked');
+        if (!tipo) return;
+
+        const slots = getSlots();
+        let eliminados = 0;
+
+        if (tipo.value === 'individual') {
+            alert('Haz clic en un slot específico para eliminarlo (próximamente).');
+            return;
+        } else if (tipo.value === 'rango') {
+            const inicio = document.getElementById('eliminarInicio').value;
+            const fin = document.getElementById('eliminarFin').value;
+            const dias = document.querySelectorAll('.eliminar-dia:checked');
+            
+            if (dias.length === 0) {
+                alert('⚠️ Selecciona al menos un día.');
+                return;
+            }
+
+            const [hInicio, mInicio] = inicio.split(':').map(Number);
+            const [hFin, mFin] = fin.split(':').map(Number);
+            
+            for (let d of dias) {
+                const dia = parseInt(d.value);
+                const originalLength = slots.length;
+                // Filtrar slots en ese rango
+                const nuevosSlots = slots.filter(s => {
+                    if (s.dia !== dia) return true;
+                    if (s.hora < hInicio || (s.hora === hInicio && s.minuto < mInicio)) return true;
+                    if (s.hora > hFin || (s.hora === hFin && s.minuto >= mFin)) return true;
+                    eliminados++;
+                    return false;
+                });
+                slots.length = 0;
+                slots.push(...nuevosSlots);
+            }
+        } else if (tipo.value === 'dia') {
+            const dia = parseInt(document.getElementById('eliminarDia').value);
+            const nuevosSlots = slots.filter(s => s.dia !== dia);
+            eliminados = slots.length - nuevosSlots.length;
+            slots.length = 0;
+            slots.push(...nuevosSlots);
+        }
+
+        saveSlots(slots);
+        closeModal('modalEliminar');
+        renderizarTodo();
+        alert(`🗑️ Se eliminaron ${eliminados} slots.`);
+    }
+
+    // ========== COORDINADOR: PROGRAMAS ==========
+    function crearPrograma() {
+        const nombre = document.getElementById('nuevoProgramaNombre').value.trim();
+        const color = document.getElementById('nuevoProgramaColor').value;
+        
+        if (!nombre) {
+            alert('⚠️ Ingresa un nombre para el programa.');
+            return;
+        }
+
+        const programas = getProgramas();
+        programas.push({
+            id: `p-${Date.now()}`,
+            nombre: nombre,
+            color: color,
+            activo: true
+        });
+        saveProgramas(programas);
+        
+        closeModal('modalPrograma');
+        document.getElementById('nuevoProgramaNombre').value = '';
+        renderizarTodo();
+        alert(`✅ Programa "${nombre}" creado exitosamente!`);
+    }
+
+    function togglePrograma(id) {
+        if (!confirm('¿Desactivar este programa? Los slots existentes se conservarán en el historial.')) return;
+        const programas = getProgramas();
+        const p = programas.find(p => p.id === id);
+        if (p) p.activo = false;
+        saveProgramas(programas);
+        renderizarTodo();
+    }
+
+    function eliminarPrograma(id) {
+        if (!confirm('¿Eliminar permanentemente este programa?')) return;
+        let programas = getProgramas();
+        programas = programas.filter(p => p.id !== id);
+        saveProgramas(programas);
+        renderizarTodo();
+    }
+
+    // ========== COORDINADOR: AVISOS ==========
+    function publicarAviso() {
+        const titulo = document.getElementById('nuevoAvisoTitulo').value.trim();
+        const contenido = document.getElementById('nuevoAvisoContenido').value.trim();
+        
+        if (!titulo || !contenido) {
+            alert('⚠️ Completa todos los campos.');
+            return;
+        }
+
+        const avisos = getAvisos();
+        avisos.push({
+            id: `a-${Date.now()}`,
+            titulo: titulo,
+            contenido: contenido,
+            fecha: new Date().toLocaleDateString()
+        });
+        saveAvisos(avisos);
+        
+        closeModal('modalAviso');
+        document.getElementById('nuevoAvisoTitulo').value = '';
+        document.getElementById('nuevoAvisoContenido').value = '';
+        renderizarTodo();
+        alert('📢 Aviso publicado exitosamente!');
+    }
+
+    // ========== HISTORIAL: EXPORTAR A EXCEL ==========
+    function exportToExcel() {
+        const historial = getHistorial();
+        if (historial.length === 0) {
+            alert('⚠️ No hay datos para exportar.');
+            return;
+        }
+
+        // Preparar datos para Excel
+        const data = historial.map(h => ({
+            'Alumno': h.alumno,
+            'Programa': h.programa || 'N/A',
+            'Fecha de cita': h.fecha,
+            'Estado': h.estado,
+            'Fecha de registro': h.fechaRegistro
+        }));
+
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, 'Historial');
+        XLSX.writeFile(wb, `historial_auditorias_${new Date().toISOString().split('T')[0]}.xlsx`);
+        
+        alert('📊 Historial exportado a Excel exitosamente!');
+    }
+
+    // ========== HISTORIAL: LIMPIAR ==========
+    function clearHistory() {
+        if (!confirm('⚠️ ¿Estás seguro de que quieres eliminar TODO el historial? Esta acción no se puede deshacer.')) return;
+        if (!confirm('⚠️ Confirmación final: ¿Eliminar todos los registros del historial?')) return;
+        
+        saveHistorial([]);
+        renderizarTodo();
+        alert('🗑️ Historial limpiado exitosamente.');
+    }
+
+    // ========== MOSTRAR OPCIONES DE ELIMINACIÓN ==========
+    document.querySelectorAll('input[name="eliminar"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            const rangoOptions = document.getElementById('eliminarRangoOptions');
+            if (this.value === 'rango') {
+                rangoOptions.style.display = 'block';
+            } else {
+                rangoOptions.style.display = 'none';
+            }
+        });
+    });
+
+    // ========== INICIALIZAR ==========
+    initData();
+    renderizarTodo();
+
+    console.log('📋 Sistema de Gestión de Auditorías cargado');
+    console.log('💡 Funcionalidades:');
+    console.log('  - Coordinador: clic en slot ocupado → gestionar cita (asistencia/inasistencia/cancelar)');
+    console.log('  - Alumno: clic en slot gris → reservar');
+    console.log('  - Historial: exportar a Excel y limpiar');
+</script>
+
+</body>
+</html>
