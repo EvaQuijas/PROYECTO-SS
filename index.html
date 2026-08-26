@@ -418,6 +418,21 @@
             margin-top: 4px;
         }
 
+        .announcement .program-badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: white;
+            margin-top: 6px;
+        }
+
+        .announcement .global-badge {
+            background: #666;
+            color: white;
+        }
+
         /* ========== HISTORIAL / CITAS ========== */
         .cita-item {
             display: flex;
@@ -623,7 +638,7 @@
         <div class="header">
             <h1>📋 Sistema de Gestión de Auditorías</h1>
             <div class="user-info">
-                <span>👤 Alumno: <span id="alumnoName">Ana</span></span>
+                <span>👤 Alumno: <span id="alumnoName">Ana</span> | <span id="alumnoPrograma">Innovación</span></span>
                 <button onclick="logout()">Cerrar sesión</button>
             </div>
         </div>
@@ -665,7 +680,7 @@
 
         <!-- CONTENIDO: Avisos -->
         <div id="alumno-avisos" class="content">
-            <h3>Avisos</h3>
+            <h3>Avisos para mi programa</h3>
             <div id="alumnoAnnouncements">
                 <!-- Generado por JS -->
             </div>
@@ -814,7 +829,7 @@
         </div>
     </div>
 
-    <!-- MODAL: Nuevo aviso -->
+    <!-- MODAL: Nuevo aviso (MODIFICADO: con selector de programa) -->
     <div class="modal-overlay" id="modalAviso">
         <div class="modal">
             <h2>📢 Nuevo aviso</h2>
@@ -822,6 +837,11 @@
             <input type="text" id="nuevoAvisoTitulo" placeholder="Título del aviso">
             <label>Contenido:</label>
             <textarea id="nuevoAvisoContenido" rows="4" placeholder="Escribe el mensaje..."></textarea>
+            <label>Programa destino:</label>
+            <select id="nuevoAvisoPrograma">
+                <!-- Generado por JS con opción "Todos los programas" -->
+            </select>
+            <p style="margin-top:8px;font-size:12px;color:#888;">Si seleccionas "Todos los programas", el aviso será visible para todos los alumnos.</p>
             <div class="btn-group">
                 <button class="btn btn-secondary" onclick="closeModal('modalAviso')">Cancelar</button>
                 <button class="btn" onclick="publicarAviso()">Publicar aviso</button>
@@ -854,10 +874,30 @@
         if (!localStorage.getItem('historial')) {
             localStorage.setItem('historial', JSON.stringify([]));
         }
+        // MODIFICADO: Avisos ahora tienen programaId
         if (!localStorage.getItem('avisos')) {
             const avisos = [
-                { id: 'a1', titulo: 'Recordatorio: entrega de reportes', contenido: 'Los reportes de auditoría deben entregarse antes del viernes 16 de julio.', fecha: '2026-07-10' },
-                { id: 'a2', titulo: 'Cambio de horario', contenido: 'El rango de 13:00 - 15:00 se eliminará a partir de la próxima semana.', fecha: '2026-07-08' }
+                { 
+                    id: 'a1', 
+                    titulo: 'Recordatorio: entrega de reportes', 
+                    contenido: 'Los reportes de auditoría deben entregarse antes del viernes 16 de julio.', 
+                    fecha: '2026-07-10',
+                    programaId: null // Global
+                },
+                { 
+                    id: 'a2', 
+                    titulo: 'Cambio de horario para Innovación', 
+                    contenido: 'El rango de 13:00 - 15:00 se eliminará a partir de la próxima semana para el programa de Innovación.', 
+                    fecha: '2026-07-08',
+                    programaId: 'p1' // Solo para Innovación
+                },
+                { 
+                    id: 'a3', 
+                    titulo: 'Reunión de Servicio Social', 
+                    contenido: 'Todos los alumnos de Servicio Social deben asistir a la reunión del jueves 15 de julio a las 10:00.', 
+                    fecha: '2026-07-09',
+                    programaId: 'p3' // Solo para Servicio Social
+                }
             ];
             localStorage.setItem('avisos', JSON.stringify(avisos));
         }
@@ -951,10 +991,20 @@
             document.getElementById('alumnoView').style.display = 'none';
             renderizarTodo();
         } else if (email.includes('alumno')) {
-            currentUser = { email, role: 'alumno', nombre: 'Ana' };
+            // El alumno "Ana" pertenece al programa p1 (Innovación)
+            currentUser = { 
+                email, 
+                role: 'alumno', 
+                nombre: 'Ana',
+                programaId: 'p1' // Asignado al programa de Innovación
+            };
             document.getElementById('loginView').style.display = 'none';
             document.getElementById('coordinadorView').style.display = 'none';
             document.getElementById('alumnoView').style.display = 'block';
+            // Actualizar nombre y programa del alumno en el header
+            document.getElementById('alumnoName').textContent = currentUser.nombre;
+            const programa = getProgramaById('p1');
+            document.getElementById('alumnoPrograma').textContent = programa ? programa.nombre : 'Sin programa';
             renderizarTodo();
         } else {
             alert('❌ Credenciales inválidas. Usa: coordinador@institucion.edu o alumno@institucion.edu');
@@ -1019,6 +1069,7 @@
         renderizarHistorial();
         renderizarCitasAlumno();
         renderizarReservaProgramas();
+        renderizarSelectorProgramasAvisos();
     }
 
     function renderizarCalendario() {
@@ -1136,19 +1187,54 @@
 
     function renderizarAvisos() {
         const avisos = getAvisos();
+        const programas = getProgramas();
         const container = document.getElementById('announcementsList');
         const alumnoContainer = document.getElementById('alumnoAnnouncements');
         
-        const html = avisos.map(a => `
-            <div class="announcement">
-                <strong>${a.titulo}</strong>
-                <p>${a.contenido}</p>
-                <div class="date">Publicado: ${a.fecha}</div>
-            </div>
-        `).join('') || '<p class="text-muted">No hay avisos publicados</p>';
-        
-        if (container) container.innerHTML = html;
-        if (alumnoContainer) alumnoContainer.innerHTML = html;
+        // Renderizar para coordinador (todos los avisos)
+        if (container) {
+            let html = '';
+            for (let a of avisos) {
+                const programa = a.programaId ? getProgramaById(a.programaId) : null;
+                const badgeText = programa ? programa.nombre : 'Todos los programas';
+                const badgeColor = programa ? programa.color : '#666';
+                
+                html += `
+                    <div class="announcement">
+                        <strong>${a.titulo}</strong>
+                        <p>${a.contenido}</p>
+                        <div class="date">Publicado: ${a.fecha}</div>
+                        <span class="program-badge" style="background:${badgeColor};">${badgeText}</span>
+                    </div>
+                `;
+            }
+            container.innerHTML = html || '<p class="text-muted">No hay avisos publicados</p>';
+        }
+
+        // Renderizar para alumno (solo los de su programa + globales)
+        if (alumnoContainer && currentUser && currentUser.role === 'alumno') {
+            const programaId = currentUser.programaId;
+            const avisosFiltrados = avisos.filter(a => 
+                a.programaId === null || a.programaId === programaId
+            );
+            
+            let html = '';
+            for (let a of avisosFiltrados) {
+                const programa = a.programaId ? getProgramaById(a.programaId) : null;
+                const badgeText = programa ? programa.nombre : 'Global';
+                const badgeColor = programa ? programa.color : '#666';
+                
+                html += `
+                    <div class="announcement">
+                        <strong>${a.titulo}</strong>
+                        <p>${a.contenido}</p>
+                        <div class="date">Publicado: ${a.fecha}</div>
+                        <span class="program-badge" style="background:${badgeColor};">${badgeText}</span>
+                    </div>
+                `;
+            }
+            alumnoContainer.innerHTML = html || '<p class="text-muted">No hay avisos para tu programa</p>';
+        }
     }
 
     function renderizarHistorial() {
@@ -1216,6 +1302,19 @@
         select.innerHTML = programas.map(p => 
             `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
         ).join('');
+    }
+
+    // NUEVA FUNCIÓN: Renderizar selector de programas para avisos
+    function renderizarSelectorProgramasAvisos() {
+        const programas = getProgramas().filter(p => p.activo);
+        const select = document.getElementById('nuevoAvisoPrograma');
+        if (!select) return;
+        
+        let html = `<option value="">Todos los programas</option>`;
+        html += programas.map(p => 
+            `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
+        ).join('');
+        select.innerHTML = html;
     }
 
     // ========== COORDINADOR: GESTIÓN DE CITAS ==========
@@ -1380,7 +1479,7 @@
         alert(`✅ Cita reservada exitosamente para ${programa.nombre}!`);
     }
 
-        // ========== COORDINADOR: AGENDAR CITA MANUAL ==========
+    // ========== COORDINADOR: AGENDAR CITA MANUAL ==========
     let slotEnAgendaManual = null;
 
     function agendarManual(slotId) {
@@ -1443,7 +1542,7 @@
         slot.alumno = alumno;
         slot.programaId = programaId;
         slot.color = programa.color;
-        slot.agendadoPor = 'coordinador'; // Marcar que fue agendado por coordinador
+        slot.agendadoPor = 'coordinador';
         saveSlots(slots);
 
         // Registrar en historial
@@ -1621,10 +1720,11 @@
         renderizarTodo();
     }
 
-    // ========== COORDINADOR: AVISOS ==========
+    // ========== COORDINADOR: AVISOS (MODIFICADO) ==========
     function publicarAviso() {
         const titulo = document.getElementById('nuevoAvisoTitulo').value.trim();
         const contenido = document.getElementById('nuevoAvisoContenido').value.trim();
+        const programaId = document.getElementById('nuevoAvisoPrograma').value;
         
         if (!titulo || !contenido) {
             alert('⚠️ Completa todos los campos.');
@@ -1636,7 +1736,8 @@
             id: `a-${Date.now()}`,
             titulo: titulo,
             contenido: contenido,
-            fecha: new Date().toLocaleDateString()
+            fecha: new Date().toLocaleDateString(),
+            programaId: programaId || null // Si está vacío, es global
         });
         saveAvisos(avisos);
         
@@ -1699,7 +1800,11 @@
     renderizarTodo();
 
     console.log('📋 Sistema de Gestión de Auditorías cargado');
-    console.log('💡 Funcionalidades:');
+    console.log('✨ NUEVA FUNCIONALIDAD: Avisos por programa');
+    console.log('  - Coordinador: puede crear avisos para programas específicos o globales');
+    console.log('  - Alumno: solo ve avisos de su programa + globales');
+    console.log('  - Ana (Innovación) ve avisos de Innovación y globales');
+    console.log('💡 Funcionalidades existentes:');
     console.log('  - Coordinador: clic en slot ocupado → gestionar cita (asistencia/inasistencia/cancelar)');
     console.log('  - Alumno: clic en slot gris → reservar');
     console.log('  - Historial: exportar a Excel y limpiar');
