@@ -320,6 +320,93 @@
             color: #d32f2f;
         }
 
+        /* ========== TABLA DE ALUMNOS ========== */
+        .alumnos-filtros {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+        .alumnos-filtros input,
+        .alumnos-filtros select {
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .alumnos-filtros input {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .alumnos-filtros select {
+            min-width: 200px;
+        }
+
+        .alumnos-table-wrap {
+            overflow-x: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        table.alumnos-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        table.alumnos-table thead th {
+            background: #1a237e;
+            color: white;
+            text-align: left;
+            padding: 12px 16px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        table.alumnos-table tbody td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+        }
+
+        table.alumnos-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        table.alumnos-table tbody tr:hover {
+            background: #f8f9ff;
+        }
+
+        .programa-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            color: white;
+        }
+
+        .alumnos-table .remove {
+            cursor: pointer;
+            color: #999;
+            font-size: 15px;
+        }
+
+        .alumnos-table .remove:hover {
+            color: #d32f2f;
+        }
+
+        .alumnos-count {
+            font-size: 13px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
         /* ========== MODALES ========== */
         .modal-overlay {
             display: none;
@@ -416,21 +503,6 @@
             font-size: 12px;
             color: #888;
             margin-top: 4px;
-        }
-
-        .announcement .program-badge {
-            display: inline-block;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-            color: white;
-            margin-top: 6px;
-        }
-
-        .announcement .global-badge {
-            background: #666;
-            color: white;
         }
 
         /* ========== HISTORIAL / CITAS ========== */
@@ -539,7 +611,8 @@
             <input type="password" id="loginPassword" placeholder="Contraseña" value="123456">
             <button class="btn btn-full" onclick="login()">Iniciar sesión</button>
             <p style="margin-top:12px;font-size:13px;color:#888;text-align:center;">
-                <strong>Demo:</strong> coordinador@institucion.edu / alumno@institucion.edu
+                <strong>Demo:</strong> coordinador@institucion.edu / alumno@institucion.edu<br>
+                Los alumnos deben estar dados de alta por el coordinador para poder iniciar sesión.
             </p>
         </div>
     </div>
@@ -561,6 +634,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('coordinador', 'calendario')">📅 Calendario</button>
             <button class="tab" onclick="switchTab('coordinador', 'programas')">📊 Programas</button>
+            <button class="tab" onclick="switchTab('coordinador', 'alumnos')">👥 Alumnos</button>
             <button class="tab" onclick="switchTab('coordinador', 'avisos')">📢 Avisos</button>
             <button class="tab" onclick="switchTab('coordinador', 'historial')">📜 Historial</button>
         </div>
@@ -604,6 +678,42 @@
             <p class="text-muted">Los programas desactivados no aparecen en el calendario, pero se conservan en el historial.</p>
         </div>
 
+        <!-- CONTENIDO: Alumnos -->
+        <div id="coordinador-alumnos" class="content">
+            <div class="flex-between mb-16">
+                <h3>Alumnos registrados</h3>
+                <button class="btn btn-secondary btn-sm" onclick="openModal('modalAlumno')">➕ Dar de alta alumno</button>
+            </div>
+
+            <div class="alumnos-filtros">
+                <input type="text" id="filtroAlumnoTexto" placeholder="🔎 Buscar por nombre o correo..." oninput="renderizarAlumnosRegistrados()">
+                <select id="filtroAlumnoPrograma" onchange="renderizarAlumnosRegistrados()">
+                    <option value="">Todos los programas</option>
+                    <!-- Generado por JS -->
+                </select>
+            </div>
+
+            <div class="alumnos-count" id="alumnosCount"></div>
+
+            <div class="alumnos-table-wrap">
+                <table class="alumnos-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                            <th>Programa</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="alumnosList">
+                        <!-- Generado por JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="text-muted mt-16">Cada alumno queda asignado a un solo programa desde su alta. No podrá elegir ni cambiar de programa al reservar sus citas.</p>
+        </div>
+
         <!-- CONTENIDO: Avisos -->
         <div id="coordinador-avisos" class="content">
             <div class="flex-between mb-16">
@@ -638,7 +748,7 @@
         <div class="header">
             <h1>📋 Sistema de Gestión de Auditorías</h1>
             <div class="user-info">
-                <span>👤 Alumno: <span id="alumnoName">Ana</span> | <span id="alumnoPrograma">Innovación</span></span>
+                <span>👤 Alumno: <span id="alumnoName">Ana</span></span>
                 <button onclick="logout()">Cerrar sesión</button>
             </div>
         </div>
@@ -680,7 +790,7 @@
 
         <!-- CONTENIDO: Avisos -->
         <div id="alumno-avisos" class="content">
-            <h3>Avisos para mi programa</h3>
+            <h3>Avisos</h3>
             <div id="alumnoAnnouncements">
                 <!-- Generado por JS -->
             </div>
@@ -720,11 +830,11 @@
                 <div class="label">Fecha y hora:</div>
                 <div class="value" id="reservaFecha">-</div>
             </div>
-            <label>Programa:</label>
-            <select id="reservaPrograma">
-                <!-- Generado por JS -->
-            </select>
-            <p style="margin-top:12px;font-size:13px;color:#888;">El slot se pintará del color de tu programa y aparecerá tu nombre.</p>
+            <div class="info-box">
+                <div class="label">Tu programa asignado:</div>
+                <div class="value" id="reservaProgramaAsignado">-</div>
+            </div>
+            <p style="margin-top:12px;font-size:13px;color:#888;">El slot se pintará del color de tu programa y aparecerá tu nombre. Tu programa lo asigna el coordinador y no puede cambiarse desde aquí.</p>
             <div class="btn-group">
                 <button class="btn btn-secondary" onclick="closeModal('modalReserva')">Cancelar</button>
                 <button class="btn" onclick="confirmarReserva()">Confirmar reserva</button>
@@ -829,7 +939,27 @@
         </div>
     </div>
 
-    <!-- MODAL: Nuevo aviso (MODIFICADO: con selector de programa) -->
+    <!-- MODAL: Dar de alta alumno -->
+    <div class="modal-overlay" id="modalAlumno">
+        <div class="modal">
+            <h2>➕ Dar de alta alumno</h2>
+            <label>Nombre del alumno:</label>
+            <input type="text" id="nuevoAlumnoNombre" placeholder="Ej. Ana Pérez">
+            <label>Correo institucional:</label>
+            <input type="email" id="nuevoAlumnoEmail" placeholder="ana@institucion.edu">
+            <label>Programa asignado:</label>
+            <select id="nuevoAlumnoPrograma">
+                <!-- Generado por JS -->
+            </select>
+            <p style="margin-top:12px;font-size:13px;color:#888;">El alumno quedará restringido a este programa y no podrá elegir otro al reservar sus citas.</p>
+            <div class="btn-group">
+                <button class="btn btn-secondary" onclick="closeModal('modalAlumno')">Cancelar</button>
+                <button class="btn" onclick="darDeAltaAlumno()">Dar de alta</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: Nuevo aviso -->
     <div class="modal-overlay" id="modalAviso">
         <div class="modal">
             <h2>📢 Nuevo aviso</h2>
@@ -837,11 +967,6 @@
             <input type="text" id="nuevoAvisoTitulo" placeholder="Título del aviso">
             <label>Contenido:</label>
             <textarea id="nuevoAvisoContenido" rows="4" placeholder="Escribe el mensaje..."></textarea>
-            <label>Programa destino:</label>
-            <select id="nuevoAvisoPrograma">
-                <!-- Generado por JS con opción "Todos los programas" -->
-            </select>
-            <p style="margin-top:8px;font-size:12px;color:#888;">Si seleccionas "Todos los programas", el aviso será visible para todos los alumnos.</p>
             <div class="btn-group">
                 <button class="btn btn-secondary" onclick="closeModal('modalAviso')">Cancelar</button>
                 <button class="btn" onclick="publicarAviso()">Publicar aviso</button>
@@ -874,32 +999,22 @@
         if (!localStorage.getItem('historial')) {
             localStorage.setItem('historial', JSON.stringify([]));
         }
-        // MODIFICADO: Avisos ahora tienen programaId
         if (!localStorage.getItem('avisos')) {
             const avisos = [
-                { 
-                    id: 'a1', 
-                    titulo: 'Recordatorio: entrega de reportes', 
-                    contenido: 'Los reportes de auditoría deben entregarse antes del viernes 16 de julio.', 
-                    fecha: '2026-07-10',
-                    programaId: null // Global
-                },
-                { 
-                    id: 'a2', 
-                    titulo: 'Cambio de horario para Innovación', 
-                    contenido: 'El rango de 13:00 - 15:00 se eliminará a partir de la próxima semana para el programa de Innovación.', 
-                    fecha: '2026-07-08',
-                    programaId: 'p1' // Solo para Innovación
-                },
-                { 
-                    id: 'a3', 
-                    titulo: 'Reunión de Servicio Social', 
-                    contenido: 'Todos los alumnos de Servicio Social deben asistir a la reunión del jueves 15 de julio a las 10:00.', 
-                    fecha: '2026-07-09',
-                    programaId: 'p3' // Solo para Servicio Social
-                }
+                { id: 'a1', titulo: 'Recordatorio: entrega de reportes', contenido: 'Los reportes de auditoría deben entregarse antes del viernes 16 de julio.', fecha: '2026-07-10' },
+                { id: 'a2', titulo: 'Cambio de horario', contenido: 'El rango de 13:00 - 15:00 se eliminará a partir de la próxima semana.', fecha: '2026-07-08' }
             ];
             localStorage.setItem('avisos', JSON.stringify(avisos));
+        }
+        if (!localStorage.getItem('alumnosRegistrados')) {
+            // El coordinador da de alta a cada alumno con su programa asignado.
+            const alumnosRegistrados = [
+                { id: 'al1', nombre: 'Ana', email: 'alumno@institucion.edu', programaId: 'p1' },
+                { id: 'al2', nombre: 'Carlos', email: 'carlos@institucion.edu', programaId: 'p2' },
+                { id: 'al3', nombre: 'Luis', email: 'luis@institucion.edu', programaId: 'p3' },
+                { id: 'al4', nombre: 'María', email: 'maria@institucion.edu', programaId: 'p4' }
+            ];
+            localStorage.setItem('alumnosRegistrados', JSON.stringify(alumnosRegistrados));
         }
     }
 
@@ -978,11 +1093,23 @@
         return getProgramas().find(p => p.id === id);
     }
 
+    function getAlumnosRegistrados() {
+        return JSON.parse(localStorage.getItem('alumnosRegistrados')) || [];
+    }
+
+    function saveAlumnosRegistrados(alumnos) {
+        localStorage.setItem('alumnosRegistrados', JSON.stringify(alumnos));
+    }
+
+    function getAlumnoPorEmail(email) {
+        return getAlumnosRegistrados().find(a => a.email.toLowerCase() === email.toLowerCase());
+    }
+
     // ========== LOGIN / LOGOUT ==========
     let currentUser = null;
 
     function login() {
-        const email = document.getElementById('loginEmail').value;
+        const email = document.getElementById('loginEmail').value.trim();
         
         if (email.includes('coordinador')) {
             currentUser = { email, role: 'coordinador', nombre: 'Oscar' };
@@ -990,24 +1117,19 @@
             document.getElementById('coordinadorView').style.display = 'block';
             document.getElementById('alumnoView').style.display = 'none';
             renderizarTodo();
-        } else if (email.includes('alumno')) {
-            // El alumno "Ana" pertenece al programa p1 (Innovación)
-            currentUser = { 
-                email, 
-                role: 'alumno', 
-                nombre: 'Ana',
-                programaId: 'p1' // Asignado al programa de Innovación
-            };
+        } else {
+            // El alumno ya no elige su programa: se toma del alta hecha por el coordinador.
+            const alumnoRegistrado = getAlumnoPorEmail(email);
+            if (!alumnoRegistrado) {
+                alert('❌ Este correo no está dado de alta en ningún programa. Contacta al coordinador para que te registre.');
+                return;
+            }
+            currentUser = { email, role: 'alumno', nombre: alumnoRegistrado.nombre, programaId: alumnoRegistrado.programaId };
             document.getElementById('loginView').style.display = 'none';
             document.getElementById('coordinadorView').style.display = 'none';
             document.getElementById('alumnoView').style.display = 'block';
-            // Actualizar nombre y programa del alumno en el header
             document.getElementById('alumnoName').textContent = currentUser.nombre;
-            const programa = getProgramaById('p1');
-            document.getElementById('alumnoPrograma').textContent = programa ? programa.nombre : 'Sin programa';
             renderizarTodo();
-        } else {
-            alert('❌ Credenciales inválidas. Usa: coordinador@institucion.edu o alumno@institucion.edu');
         }
     }
 
@@ -1036,6 +1158,7 @@
             const text = tab.textContent;
             if (text.includes('Calendario') && tabName === 'calendario' ||
                 text.includes('Programas') && tabName === 'programas' ||
+                text.includes('Alumnos') && tabName === 'alumnos' ||
                 text.includes('Avisos') && tabName === 'avisos' ||
                 text.includes('Historial') && tabName === 'historial' ||
                 text.includes('Mis citas') && tabName === 'citas') {
@@ -1065,11 +1188,10 @@
     function renderizarTodo() {
         renderizarCalendario();
         renderizarProgramas();
+        renderizarAlumnosRegistrados();
         renderizarAvisos();
         renderizarHistorial();
         renderizarCitasAlumno();
-        renderizarReservaProgramas();
-        renderizarSelectorProgramasAvisos();
     }
 
     function renderizarCalendario() {
@@ -1187,54 +1309,19 @@
 
     function renderizarAvisos() {
         const avisos = getAvisos();
-        const programas = getProgramas();
         const container = document.getElementById('announcementsList');
         const alumnoContainer = document.getElementById('alumnoAnnouncements');
         
-        // Renderizar para coordinador (todos los avisos)
-        if (container) {
-            let html = '';
-            for (let a of avisos) {
-                const programa = a.programaId ? getProgramaById(a.programaId) : null;
-                const badgeText = programa ? programa.nombre : 'Todos los programas';
-                const badgeColor = programa ? programa.color : '#666';
-                
-                html += `
-                    <div class="announcement">
-                        <strong>${a.titulo}</strong>
-                        <p>${a.contenido}</p>
-                        <div class="date">Publicado: ${a.fecha}</div>
-                        <span class="program-badge" style="background:${badgeColor};">${badgeText}</span>
-                    </div>
-                `;
-            }
-            container.innerHTML = html || '<p class="text-muted">No hay avisos publicados</p>';
-        }
-
-        // Renderizar para alumno (solo los de su programa + globales)
-        if (alumnoContainer && currentUser && currentUser.role === 'alumno') {
-            const programaId = currentUser.programaId;
-            const avisosFiltrados = avisos.filter(a => 
-                a.programaId === null || a.programaId === programaId
-            );
-            
-            let html = '';
-            for (let a of avisosFiltrados) {
-                const programa = a.programaId ? getProgramaById(a.programaId) : null;
-                const badgeText = programa ? programa.nombre : 'Global';
-                const badgeColor = programa ? programa.color : '#666';
-                
-                html += `
-                    <div class="announcement">
-                        <strong>${a.titulo}</strong>
-                        <p>${a.contenido}</p>
-                        <div class="date">Publicado: ${a.fecha}</div>
-                        <span class="program-badge" style="background:${badgeColor};">${badgeText}</span>
-                    </div>
-                `;
-            }
-            alumnoContainer.innerHTML = html || '<p class="text-muted">No hay avisos para tu programa</p>';
-        }
+        const html = avisos.map(a => `
+            <div class="announcement">
+                <strong>${a.titulo}</strong>
+                <p>${a.contenido}</p>
+                <div class="date">Publicado: ${a.fecha}</div>
+            </div>
+        `).join('') || '<p class="text-muted">No hay avisos publicados</p>';
+        
+        if (container) container.innerHTML = html;
+        if (alumnoContainer) alumnoContainer.innerHTML = html;
     }
 
     function renderizarHistorial() {
@@ -1271,8 +1358,7 @@
         const container = document.getElementById('alumnoCitasList');
         if (!container) return;
 
-        // Asumimos que el alumno actual es "Ana"
-        const misSlots = slots.filter(s => !s.disponible && s.alumno === 'Ana');
+        const misSlots = slots.filter(s => !s.disponible && s.alumno === currentUser.nombre);
         
         if (misSlots.length === 0) {
             container.innerHTML = '<p class="text-muted">No tienes citas programadas</p>';
@@ -1295,26 +1381,114 @@
         container.innerHTML = html;
     }
 
-    function renderizarReservaProgramas() {
-        const programas = getProgramas().filter(p => p.activo);
-        const select = document.getElementById('reservaPrograma');
-        if (!select) return;
-        select.innerHTML = programas.map(p => 
-            `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
-        ).join('');
+    // ========== COORDINADOR: ALUMNOS REGISTRADOS ==========
+    function renderizarAlumnosRegistrados() {
+        const alumnos = getAlumnosRegistrados();
+        const programas = getProgramas();
+
+        // Select de filtro por programa (incluye todos, activos e inactivos, para no perder de vista a nadie)
+        const filtroProgramaSelect = document.getElementById('filtroAlumnoPrograma');
+        if (filtroProgramaSelect) {
+            const seleccionActual = filtroProgramaSelect.value;
+            filtroProgramaSelect.innerHTML = '<option value="">Todos los programas</option>' +
+                programas.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            filtroProgramaSelect.value = seleccionActual;
+        }
+
+        const textoFiltro = (document.getElementById('filtroAlumnoTexto')?.value || '').trim().toLowerCase();
+        const programaFiltro = document.getElementById('filtroAlumnoPrograma')?.value || '';
+
+        let alumnosFiltrados = alumnos.filter(a => {
+            const coincideTexto = !textoFiltro ||
+                a.nombre.toLowerCase().includes(textoFiltro) ||
+                a.email.toLowerCase().includes(textoFiltro);
+            const coincidePrograma = !programaFiltro || a.programaId === programaFiltro;
+            return coincideTexto && coincidePrograma;
+        });
+
+        // Orden alfabético por programa y luego por nombre, para que se vea agrupado
+        alumnosFiltrados.sort((a, b) => {
+            const progA = programas.find(p => p.id === a.programaId)?.nombre || '';
+            const progB = programas.find(p => p.id === b.programaId)?.nombre || '';
+            if (progA !== progB) return progA.localeCompare(progB);
+            return a.nombre.localeCompare(b.nombre);
+        });
+
+        const tbody = document.getElementById('alumnosList');
+        if (tbody) {
+            let html = alumnosFiltrados.map(a => {
+                const programa = programas.find(p => p.id === a.programaId);
+                const colorPrograma = programa ? programa.color : '#888';
+                const nombrePrograma = programa ? programa.nombre : 'Sin programa';
+                return `
+                    <tr>
+                        <td>${a.nombre}</td>
+                        <td>${a.email}</td>
+                        <td><span class="programa-badge" style="background:${colorPrograma};">${nombrePrograma}</span></td>
+                        <td><span class="remove" onclick="eliminarAlumnoRegistrado('${a.id}')" title="Eliminar alta">🗑️</span></td>
+                    </tr>
+                `;
+            }).join('');
+            tbody.innerHTML = html || `<tr><td colspan="4" class="text-muted" style="text-align:center;padding:24px;">No hay alumnos que coincidan con el filtro.</td></tr>`;
+        }
+
+        const countEl = document.getElementById('alumnosCount');
+        if (countEl) {
+            countEl.textContent = `Mostrando ${alumnosFiltrados.length} de ${alumnos.length} alumnos registrados`;
+        }
+
+        // Select del modal de alta de alumno, solo con programas activos
+        const select = document.getElementById('nuevoAlumnoPrograma');
+        if (select) {
+            const programasActivos = programas.filter(p => p.activo);
+            select.innerHTML = programasActivos.map(p =>
+                `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
+            ).join('');
+        }
     }
 
-    // NUEVA FUNCIÓN: Renderizar selector de programas para avisos
-    function renderizarSelectorProgramasAvisos() {
-        const programas = getProgramas().filter(p => p.activo);
-        const select = document.getElementById('nuevoAvisoPrograma');
-        if (!select) return;
-        
-        let html = `<option value="">Todos los programas</option>`;
-        html += programas.map(p => 
-            `<option value="${p.id}" style="color:${p.color};">${p.nombre}</option>`
-        ).join('');
-        select.innerHTML = html;
+    function darDeAltaAlumno() {
+        const nombre = document.getElementById('nuevoAlumnoNombre').value.trim();
+        const email = document.getElementById('nuevoAlumnoEmail').value.trim();
+        const programaId = document.getElementById('nuevoAlumnoPrograma').value;
+
+        if (!nombre || !email) {
+            alert('⚠️ Completa el nombre y el correo del alumno.');
+            return;
+        }
+
+        if (!programaId) {
+            alert('⚠️ Crea al menos un programa antes de dar de alta alumnos.');
+            return;
+        }
+
+        const alumnos = getAlumnosRegistrados();
+        if (getAlumnoPorEmail(email)) {
+            alert('⚠️ Ese correo ya está dado de alta.');
+            return;
+        }
+
+        alumnos.push({
+            id: `al-${Date.now()}`,
+            nombre: nombre,
+            email: email,
+            programaId: programaId
+        });
+        saveAlumnosRegistrados(alumnos);
+
+        closeModal('modalAlumno');
+        document.getElementById('nuevoAlumnoNombre').value = '';
+        document.getElementById('nuevoAlumnoEmail').value = '';
+        renderizarTodo();
+        alert(`✅ Alumno "${nombre}" dado de alta correctamente.`);
+    }
+
+    function eliminarAlumnoRegistrado(id) {
+        if (!confirm('¿Eliminar el alta de este alumno? Ya no podrá iniciar sesión ni reservar citas hasta que sea registrado de nuevo.')) return;
+        let alumnos = getAlumnosRegistrados();
+        alumnos = alumnos.filter(a => a.id !== id);
+        saveAlumnosRegistrados(alumnos);
+        renderizarTodo();
     }
 
     // ========== COORDINADOR: GESTIÓN DE CITAS ==========
@@ -1438,6 +1612,11 @@
             return;
         }
 
+        if (!currentUser.programaId) {
+            alert('⚠️ Tu cuenta no tiene un programa asignado. Contacta al coordinador para que te dé de alta.');
+            return;
+        }
+
         const slots = getSlots();
         const slot = slots.find(s => s.id === slotId);
         if (!slot || !slot.disponible) {
@@ -1445,18 +1624,22 @@
             return;
         }
 
+        const programa = getProgramaById(currentUser.programaId);
+
         slotEnReserva = slotId;
         document.getElementById('reservaFecha').textContent = `Día ${slot.dia}, ${slot.hora}:00`;
+        document.getElementById('reservaProgramaAsignado').textContent = programa ? programa.nombre : 'Sin programa';
         openModal('modalReserva');
     }
 
     function confirmarReserva() {
         if (!slotEnReserva) return;
-        
-        const programaId = document.getElementById('reservaPrograma').value;
+
+        // El programa ya no lo elige el alumno: siempre es el que el coordinador le asignó al darlo de alta.
+        const programaId = currentUser.programaId;
         const programa = getProgramaById(programaId);
         if (!programa) {
-            alert('⚠️ Selecciona un programa válido.');
+            alert('⚠️ No tienes un programa asignado. Contacta al coordinador.');
             return;
         }
 
@@ -1479,7 +1662,7 @@
         alert(`✅ Cita reservada exitosamente para ${programa.nombre}!`);
     }
 
-    // ========== COORDINADOR: AGENDAR CITA MANUAL ==========
+        // ========== COORDINADOR: AGENDAR CITA MANUAL ==========
     let slotEnAgendaManual = null;
 
     function agendarManual(slotId) {
@@ -1542,7 +1725,7 @@
         slot.alumno = alumno;
         slot.programaId = programaId;
         slot.color = programa.color;
-        slot.agendadoPor = 'coordinador';
+        slot.agendadoPor = 'coordinador'; // Marcar que fue agendado por coordinador
         saveSlots(slots);
 
         // Registrar en historial
@@ -1720,11 +1903,10 @@
         renderizarTodo();
     }
 
-    // ========== COORDINADOR: AVISOS (MODIFICADO) ==========
+    // ========== COORDINADOR: AVISOS ==========
     function publicarAviso() {
         const titulo = document.getElementById('nuevoAvisoTitulo').value.trim();
         const contenido = document.getElementById('nuevoAvisoContenido').value.trim();
-        const programaId = document.getElementById('nuevoAvisoPrograma').value;
         
         if (!titulo || !contenido) {
             alert('⚠️ Completa todos los campos.');
@@ -1736,8 +1918,7 @@
             id: `a-${Date.now()}`,
             titulo: titulo,
             contenido: contenido,
-            fecha: new Date().toLocaleDateString(),
-            programaId: programaId || null // Si está vacío, es global
+            fecha: new Date().toLocaleDateString()
         });
         saveAvisos(avisos);
         
@@ -1800,11 +1981,7 @@
     renderizarTodo();
 
     console.log('📋 Sistema de Gestión de Auditorías cargado');
-    console.log('✨ NUEVA FUNCIONALIDAD: Avisos por programa');
-    console.log('  - Coordinador: puede crear avisos para programas específicos o globales');
-    console.log('  - Alumno: solo ve avisos de su programa + globales');
-    console.log('  - Ana (Innovación) ve avisos de Innovación y globales');
-    console.log('💡 Funcionalidades existentes:');
+    console.log('💡 Funcionalidades:');
     console.log('  - Coordinador: clic en slot ocupado → gestionar cita (asistencia/inasistencia/cancelar)');
     console.log('  - Alumno: clic en slot gris → reservar');
     console.log('  - Historial: exportar a Excel y limpiar');
