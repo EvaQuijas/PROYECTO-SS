@@ -25,6 +25,10 @@ router.put('/:id', validateAlumno, alumnoController.update);
 // POST /api/alumnos/:id/reset-password - Restablecer contraseña
 router.post('/:id/reset-password', alumnoController.resetPassword);
 
+// DELETE /api/alumnos/all - Eliminar TODOS los alumnos del coordinador
+// ⚠️ Debe declararse ANTES de '/:id' para que "all" no se interprete como un id
+router.delete('/all', alumnoController.deleteAll);
+
 // DELETE /api/alumnos/:id - Eliminar un alumno
 router.delete('/:id', alumnoController.delete);
 

@@ -36,12 +36,19 @@ async function login(req, res) {
         email: coordinador.email,
         nombre: coordinador.nombre,
         password_hash: coordinador.password_hash,
+        es_principal: coordinador.es_principal === true,
+        activo: coordinador.activo !== false,
       };
       role = 'coordinador';
     } else {
       // 2. Si no encuentra, buscar en tabla alumnos
       const alumnoResult = await pool.query(
-        'SELECT * FROM alumnos WHERE email = $1',
+        `SELECT a.id, a.nombre, a.email, a.password_hash,
+                a.programa_id, a.coordinador_id,
+                p.nombre AS programa_nombre
+         FROM alumnos a
+         LEFT JOIN programas p ON p.id = a.programa_id
+         WHERE a.email = $1`,
         [email]
       );
 
@@ -54,6 +61,7 @@ async function login(req, res) {
           password_hash: alumno.password_hash,
           programa_id: alumno.programa_id,
           coordinador_id: alumno.coordinador_id,
+          programa_nombre: alumno.programa_nombre || null,
         };
         role = 'alumno';
       }
@@ -76,6 +84,14 @@ async function login(req, res) {
       });
     }
 
+    // 4b. Los coordinadores desactivados no pueden iniciar sesión
+    if (role === 'coordinador' && user.activo === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tu cuenta está desactivada. Contacta al coordinador principal.',
+      });
+    }
+
     // 5. Generar JWT según el rol
     let payload;
     if (role === 'coordinador') {
@@ -84,6 +100,7 @@ async function login(req, res) {
         email: user.email,
         role: 'coordinador',
         nombre: user.nombre,
+        es_principal: user.es_principal || false,
       };
     } else {
       payload = {
@@ -93,6 +110,7 @@ async function login(req, res) {
         nombre: user.nombre,
         programa_id: user.programa_id,
         coordinador_id: user.coordinador_id,
+        programa_nombre: user.programa_nombre || null,
       };
     }
 
@@ -108,9 +126,14 @@ async function login(req, res) {
       nombre: user.nombre,
     };
 
+    if (role === 'coordinador') {
+      userResponse.es_principal = user.es_principal || false;
+    }
+
     if (role === 'alumno') {
       userResponse.programa_id = user.programa_id;
       userResponse.coordinador_id = user.coordinador_id;
+      userResponse.programa_nombre = user.programa_nombre || null;
     }
 
     return res.status(200).json({

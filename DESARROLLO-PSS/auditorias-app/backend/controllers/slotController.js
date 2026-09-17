@@ -22,19 +22,50 @@ async function getSlotsSemana(req, res, next) {
     // Calcular lunes y domingo de la semana
     const { lunes, domingo } = getSemana(fechaBase);
 
+    // Para un coordinador se buscan sus propios slots (id); para un alumno,
+    // los slots de su coordinador (coordinador_id del JWT)
+    const propietarioId =
+      req.user.role === 'alumno' ? req.user.coordinador_id : req.user.id;
+
+    // Obtener slots con información de citas y alumnos
     const result = await pool.query(
-      `SELECT id, fecha, hora_inicio, hora_fin, duracion_minutos, disponible, coordinador_id, created_at
-       FROM slots
-       WHERE coordinador_id = $1
-         AND fecha >= $2
-         AND fecha <= $3
-       ORDER BY fecha ASC, hora_inicio ASC`,
-      [req.user.id, lunes, domingo]
+      `SELECT 
+         s.id, s.fecha, s.hora_inicio, s.hora_fin, s.duracion_minutos, s.disponible, 
+         s.coordinador_id, s.created_at,
+         c.id as cita_id,
+         a.nombre as alumno_nombre,
+         a.email as alumno_email,
+         p.nombre as programa_nombre,
+         p.color_hex as programa_color
+       FROM slots s
+       LEFT JOIN citas c ON c.slot_id = s.id AND c.estado IN ('pendiente', 'asistio')
+       LEFT JOIN alumnos a ON a.id = c.alumno_id
+       LEFT JOIN programas p ON p.id = c.programa_id
+       WHERE s.coordinador_id = $1
+         AND s.fecha >= $2
+         AND s.fecha <= $3
+       ORDER BY s.fecha ASC, s.hora_inicio ASC`,
+      [propietarioId, lunes, domingo]
     );
+
+    // Si es alumno, ocultar información sensible
+    let slots = result.rows;
+    if (req.user.role === 'alumno') {
+      slots = slots.map(slot => {
+        const nuevoSlot = { ...slot };
+        if (!slot.disponible) {
+          // Ocultar nombre y email del alumno que ocupó el slot
+          nuevoSlot.alumno_nombre = 'Ocupado';
+          delete nuevoSlot.alumno_email;
+          // Mantener programa_nombre y programa_color para que sepa qué tipo de auditoría es
+        }
+        return nuevoSlot;
+      });
+    }
 
     return res.status(200).json({
       success: true,
-      data: result.rows,
+      data: slots,
       semana: { inicio: lunes, fin: domingo },
     });
   } catch (error) {

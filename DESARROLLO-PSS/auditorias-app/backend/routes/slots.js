@@ -3,6 +3,11 @@ const router = express.Router();
 const slotController = require('../controllers/slotController');
 const { verifyToken, requireCoordinador } = require('../middleware/auth');
 
+// ========== RUTA PARA COORDINADORES Y ALUMNOS ==========
+// Los alumnos pueden ver slots (con datos limitados)
+router.get('/semana', verifyToken, slotController.getSlotsSemana);
+
+
 // Todas las rutas de slots requieren autenticación y rol de coordinador
 router.use(verifyToken, requireCoordinador);
 

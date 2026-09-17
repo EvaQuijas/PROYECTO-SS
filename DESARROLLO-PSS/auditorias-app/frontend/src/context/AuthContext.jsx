@@ -57,6 +57,8 @@ export function AuthProvider({ children }) {
     logout,
     isLoading,
     isAuthenticated: !!user,
+    // true solo para el coordinador principal (superadmin)
+    esPrincipal: user?.role === 'coordinador' && user?.es_principal === true,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

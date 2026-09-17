@@ -92,7 +92,60 @@ function validateAlumno(req, res, next) {
   next();
 }
 
+/**
+ * Valida los campos de un aviso (titulo, contenido, programa_id)
+ * Se usa en la creación y actualización de avisos
+ */
+function validateAviso(req, res, next) {
+  const { titulo, contenido, programa_id } = req.body;
+  const errors = [];
+
+  // Validar título
+  if (req.method === 'POST') {
+    if (!titulo || titulo.trim() === '') {
+      errors.push('El título del aviso es requerido');
+    } else if (titulo.trim().length > 200) {
+      errors.push('El título no puede exceder 200 caracteres');
+    }
+  } else if (titulo !== undefined && titulo.trim() === '') {
+    errors.push('El título del aviso no puede estar vacío');
+  }
+
+  // Validar contenido
+  if (req.method === 'POST') {
+    if (!contenido || contenido.trim() === '') {
+      errors.push('El contenido del aviso es requerido');
+    }
+  } else if (contenido !== undefined && contenido.trim() === '') {
+    errors.push('El contenido del aviso no puede estar vacío');
+  }
+
+  // Validar programa_id (si se proporciona y no es global/empty)
+  if (
+    programa_id !== undefined &&
+    programa_id !== null &&
+    programa_id !== ''
+  ) {
+    const num = Number(programa_id);
+    if (isNaN(num) || num <= 0) {
+      errors.push('El programa_id debe ser un número válido');
+    }
+  }
+
+  // Si hay errores, responder 400 con la lista
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Error de validación',
+      errors,
+    });
+  }
+
+  next();
+}
+
 module.exports = {
   validatePrograma,
   validateAlumno,
+  validateAviso,
 };

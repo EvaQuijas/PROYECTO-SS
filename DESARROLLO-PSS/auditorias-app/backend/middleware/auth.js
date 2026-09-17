@@ -84,8 +84,31 @@ function requireCoordinador(req, res, next) {
   next();
 }
 
+/**
+ * Middleware específico para verificar que el usuario sea el coordinador
+ * principal (superadmin). Solo él puede administrar otros coordinadores.
+ */
+function requireSuperAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Token no proporcionado',
+    });
+  }
+
+  if (req.user.role !== 'coordinador' || req.user.es_principal !== true) {
+    return res.status(403).json({
+      success: false,
+      message: 'Acceso denegado. Solo el coordinador principal',
+    });
+  }
+
+  next();
+}
+
 module.exports = {
   verifyToken,
   requireRole,
   requireCoordinador,
+  requireSuperAdmin,
 };

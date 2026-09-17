@@ -364,6 +364,28 @@ async function deleteAlumno(req, res, next) {
 }
 
 /**
+ * DELETE /api/alumnos/all
+ * Elimina TODOS los alumnos del coordinador autenticado.
+ * Nota: las citas asociadas se eliminan en cascada (citas.alumno_id ON DELETE CASCADE)
+ * y el historial conserva el registro con cita_id = NULL.
+ */
+async function deleteAll(req, res, next) {
+  try {
+    const result = await pool.query(
+      `DELETE FROM alumnos WHERE coordinador_id = $1 RETURNING id`,
+      [req.user.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `${result.rows.length} alumnos eliminados`,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+/**
  * POST /api/alumnos/:id/reset-password
  * Restablece la contraseña de un alumno a la temporal
  */
@@ -410,5 +432,6 @@ module.exports = {
   create,
   update,
   delete: deleteAlumno,
+  deleteAll,
   resetPassword,
 };

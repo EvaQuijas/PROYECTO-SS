@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+/*
+ * Paleta de colores Verde (Tailwind v4 usa @theme en el CSS)
+ * primary-500 = #4caf50 (verde claro)
+ * primary-700 = #2e7d32 (verde medio)
+ * primary-900 = #1b5e20 (verde oscuro)
+ */
+@theme {
+  --color-primary-50: #e8f5e9;
+  --color-primary-100: #c8e6c9;
+  --color-primary-200: #a5d6a7;
+  --color-primary-300: #81c784;
+  --color-primary-400: #66bb6a;
+  --color-primary-500: #4caf50;
+  --color-primary-600: #43a047;
+  --color-primary-700: #2e7d32;
+  --color-primary-800: #388e3c;
+  --color-primary-900: #1b5e20;
+}
+
+/* Estilos base */
+body {
+  background-color: #f1f8e9;
+  color: #1a1a1a;
+}
+
