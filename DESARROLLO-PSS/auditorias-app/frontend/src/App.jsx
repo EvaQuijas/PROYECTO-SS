@@ -3,6 +3,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import CoordinadorDashboard from './pages/Coordinador/CoordinadorDashboard';
 import AlumnoDashboard from './pages/AlumnoDashboard';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 /**
  * Componente que protege rutas según autenticación y rol
@@ -49,6 +51,8 @@ export default function App() {
         <Routes>
           {/* Ruta pública */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
 
           {/* Rutas protegidas */}
           <Route

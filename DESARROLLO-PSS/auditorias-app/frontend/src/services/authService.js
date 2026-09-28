@@ -68,10 +68,50 @@ function isAuthenticated() {
   return !!getToken();
 }
 
+/**
+ * Solicita el enlace de recuperación de contraseña
+ * @param {string} email
+ * @returns {Promise<string>} mensaje del backend
+ */
+async function forgotPassword(email) {
+  try {
+    const response = await axios.post(`${API_URL}/api/auth/forgot-password`, {
+      email,
+    });
+    return response.data.message;
+  } catch (error) {
+    const message =
+      error.response?.data?.message || 'Error al solicitar la recuperación';
+    throw new Error(message);
+  }
+}
+
+/**
+ * Establece una contraseña nueva usando el token del correo
+ * @param {string} token
+ * @param {string} password
+ * @returns {Promise<string>} mensaje del backend
+ */
+async function resetPassword(token, password) {
+  try {
+    const response = await axios.post(`${API_URL}/api/auth/reset-password`, {
+      token,
+      password,
+    });
+    return response.data.message;
+  } catch (error) {
+    const message =
+      error.response?.data?.message || 'Error al restablecer la contraseña';
+    throw new Error(message);
+  }
+}
+
 export {
   login,
   logout,
   getToken,
   getCurrentUser,
   isAuthenticated,
+  forgotPassword,
+  resetPassword,
 };

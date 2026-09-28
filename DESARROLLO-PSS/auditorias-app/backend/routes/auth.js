@@ -17,4 +17,10 @@ router.get('/verify', verifyToken, (req, res) => {
   });
 });
 
+// POST /api/auth/forgot-password - Solicitar recuperación de contraseña
+router.post('/forgot-password', authController.forgotPassword);
+
+// POST /api/auth/reset-password - Establecer nueva contraseña
+router.post('/reset-password', authController.resetPassword);
+
 module.exports = router;
