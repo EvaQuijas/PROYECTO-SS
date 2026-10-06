@@ -13,20 +13,18 @@ const nodemailer = require('nodemailer');
 // =============================================
 // Configuración del transporter
 // =============================================
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER;
-const SMTP_PASS = process.env.SMTP_PASS;
 const SMTP_FROM =
   process.env.SMTP_FROM || 'Sistema de Auditorías <no-reply@institucion.edu>';
 
 const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465, // true para 465, false para 587 (STARTTLS)
+  service: 'gmail',
   auth: {
+    type: 'OAuth2',
     user: SMTP_USER,
-    pass: SMTP_PASS,
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
   },
 });
 

@@ -1,31 +1,31 @@
 const nodemailer = require('nodemailer');
+require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false, // STARTTLS
+  service: 'gmail',
   auth: {
-    user: 'quijaslucette@gmail.com', // ← Tu correo Gmail
-    pass: 'tmco ntgr ouqy lxnn', // ← Contraseña de aplicación (16 caracteres)
+    type: 'OAuth2',
+    user: process.env.SMTP_USER,
+    clientId: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
   },
 });
 
-// Verificar conexión
 transporter.verify((error, success) => {
   if (error) {
-    console.log('❌ Error de conexión:', error.message);
+    console.log('❌ Error:', error.message);
   } else {
-    console.log('✅ Servidor listo para enviar correos');
+    console.log('✅ Servidor listo para enviar correos con OAuth 2.0');
   }
 });
 
-// Opcional: enviar correo de prueba
+// Enviar correo de prueba
 transporter.sendMail({
-  from: '"Sistema de Auditorías" <quijaslucette@gmail.com>',
-  to: 'evangelina.quijass@uanl.edu.mx', // ← Tu correo UANL
-  subject: 'Prueba de envío',
-  text: 'Este es un correo de prueba del Sistema de Auditorías',
-  html: '<h1>¡Funciona!</h1><p>El sistema de correos está configurado correctamente.</p>',
+  from: process.env.SMTP_FROM,
+  to: 'evangelina.quijass@uanl.edu.mx',
+  subject: 'Prueba OAuth 2.0',
+  text: 'Este correo usa OAuth 2.0 con Gmail',
 }, (error, info) => {
   if (error) {
     console.log('❌ Error al enviar:', error.message);
