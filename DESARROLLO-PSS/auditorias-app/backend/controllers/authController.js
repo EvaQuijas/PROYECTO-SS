@@ -379,9 +379,93 @@ async function resetPassword(req, res) {
   }
 }
 
+/**
+ * POST /api/auth/change-password
+ * Permite a un usuario autenticado (coordinador o alumno) cambiar su
+ * propia contraseña verificando primero la contraseña actual.
+ */
+async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user.id;
+  const role = req.user.role;
+
+  // Validaciones de entrada
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: 'La contraseña actual y la nueva son requeridas',
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'La nueva contraseña debe tener al menos 6 caracteres',
+    });
+  }
+
+  if (currentPassword === newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: 'La nueva contraseña debe ser diferente a la actual',
+    });
+  }
+
+  // Determinar la tabla según el rol del token (valor controlado, sin inyección)
+  const tabla = role === 'coordinador' ? 'coordinadores' : 'alumnos';
+
+  try {
+    // 1. Obtener el hash actual
+    const result = await pool.query(
+      `SELECT password_hash FROM ${tabla} WHERE id = $1`,
+      [userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Usuario no encontrado',
+      });
+    }
+
+    // 2. Verificar la contraseña actual
+    const passwordMatch = await bcrypt.compare(
+      currentPassword,
+      result.rows[0].password_hash
+    );
+
+    if (!passwordMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'La contraseña actual es incorrecta',
+      });
+    }
+
+    // 3. Hashear y guardar la nueva contraseña
+    const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    await pool.query(`UPDATE ${tabla} SET password_hash = $1 WHERE id = $2`, [
+      newHash,
+      userId,
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Contraseña actualizada exitosamente',
+    });
+  } catch (error) {
+    console.error('Error en changePassword:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+    });
+  }
+}
+
 module.exports = {
   login,
   registerCoordinador,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

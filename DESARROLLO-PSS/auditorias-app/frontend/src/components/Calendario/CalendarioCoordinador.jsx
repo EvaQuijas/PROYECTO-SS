@@ -72,7 +72,6 @@ function normalizarFecha(fechaStr) {
  * Calendario semanal del coordinador (Lunes a Viernes)
  */
 export default function CalendarioCoordinador() {
-  console.log('🔥🔥🔥 CalendarioCoordinador SE ESTÁ RENDERIZANDO');
   const contexto = new Date();
   const [semanaBase, setSemanaBase] = useState(getLunes(toDateStr(contexto)));
 
@@ -95,36 +94,26 @@ export default function CalendarioCoordinador() {
    * Carga slots y citas para la semana actual
    */
   const cargarSemana = useCallback(async () => {
-    console.log('🟢 1. cargarSemana INICIO');
     setLoading(true);
     setError('');
     try {
       const fechaLunes = toDateStr(semanaBase);
-      console.log('🟢 2. Fecha lunes:', fechaLunes);
 
-      console.log('🟢 3. ANTES de slotService.getSlotsSemana');
       const slotsRes = await slotService.getSlotsSemana(fechaLunes);
-      console.log('🟢 4. DESPUÉS de slotService, slotsRes:', slotsRes);
-
-      console.log('🟢 5. ANTES de citaService.getTodas');
       const citasRes = await citaService.getTodas();
-      console.log('🟢 6. DESPUÉS de citaService, citasRes:', citasRes);
 
       setSlots(slotsRes.data || []);
       setCitas(citasRes || []);
-      console.log('🟢 7. setSlots y setCitas ejecutados');
     } catch (err) {
-      console.error('🔴 ERROR en cargarSemana:', err);
+      console.error('Error en cargarSemana:', err);
       setError(err.message);
     } finally {
-      console.log('🟢 8. FINALLY - loading=false');
       setLoading(false);
     }
   }, [semanaBase]);
 
   // Llamar a cargarSemana cuando semanaBase cambie
   useEffect(() => {
-    console.log('🔄 useEffect EJECUTÁNDOSE');
     cargarSemana();
   }, [cargarSemana]);
 
@@ -257,31 +246,6 @@ export default function CalendarioCoordinador() {
     return delDia.sort((a, b) => horaAMinutos(a.hora_inicio) - horaAMinutos(b.hora_inicio));
   });
 
-  // Rango de horas ocupadas para calcular la altura del grid
-  let horaMin = 24 * 60;
-  let horaMax = 0;
-  slots.forEach((s) => {
-    const ini = horaAMinutos(s.hora_inicio);
-    const fin = horaAMinutos(s.hora_fin);
-    if (ini < horaMin) horaMin = ini;
-    if (fin > horaMax) horaMax = fin;
-  });
-  if (horaMax <= horaMin) {
-    horaMin = 8 * 60;
-    horaMax = 13 * 60;
-  }
-  const totalMinutos = horaMax - horaMin || 1;
-
-  // Marcas de horas del eje vertical
-  const marcas = [];
-  for (let h = Math.floor(horaMin / 60); h <= Math.ceil(horaMax / 60); h++) {
-    marcas.push(h);
-  }
-
-  console.log('📊 slotsPorDia:', slotsPorDia);
-  console.log('📊 marcas:', marcas);
-  console.log('📊 horaMin:', horaMin, 'horaMax:', horaMax);
-
   return (
     <div>
       {/* Barra de herramientas */}
@@ -344,91 +308,81 @@ export default function CalendarioCoordinador() {
           <span>Cargando calendario...</span>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {/* Encabezado del grid */}
-          <div className="grid" style={{ gridTemplateColumns: '80px repeat(5, 1fr)' }}>
-            <div className="bg-primary-900 text-white px-3 py-2 text-sm font-semibold">Hora</div>
-            {fechas.map((fecha, idx) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          {fechas.map((fecha, diaIdx) => {
+            const slotsDia = slotsPorDia[diaIdx];
+            const fechaStr = toDateStr(fecha);
+            const esHoy = fechaStr === toDateStr(contexto);
+            return (
               <div
-                key={idx}
-                className="bg-primary-900 text-white text-center px-3 py-2 border-l border-primary-700"
+                key={diaIdx}
+                className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col"
               >
-                <div className="text-sm font-semibold">{DIAS_SEMANA[idx]}</div>
-                <div className="text-xs text-primary-100">
-                  {fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                {/* Encabezado del día */}
+                <div className={`px-3 py-2 text-center ${esHoy ? 'bg-primary-900' : 'bg-[#f1f8e9]'}`}>
+                  <p className={`text-sm font-semibold ${esHoy ? 'text-white' : 'text-primary-900'}`}>
+                    {DIAS_SEMANA[diaIdx]}
+                  </p>
+                  <p className={`text-xs ${esHoy ? 'text-primary-100' : 'text-gray-500'}`}>
+                    {fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                  </p>
+                </div>
+
+                {/* Slots del día (scrollable, con altura real por slot) */}
+                <div className="p-2 space-y-2 flex-1 min-h-[140px] max-h-[70vh] overflow-y-auto">
+                  {slotsDia.length === 0 ? (
+                    <p className="text-xs text-gray-400 text-center py-6">
+                      Sin horarios disponibles
+                    </p>
+                  ) : (
+                    slotsDia.map((slot) => {
+                      const cita = citasPorSlot[slot.id];
+
+                      // Slot ocupado con cita → abre el modal de gestión
+                      if (!slot.disponible && cita) {
+                        return (
+                          <button
+                            key={slot.id}
+                            onClick={() => setCitaSeleccionada(cita)}
+                            title={`${slot.hora_inicio} - ${slot.hora_fin} (clic para gestionar)`}
+                            className="w-full rounded-md px-2 py-2 text-left text-white shadow-sm hover:brightness-110 transition cursor-pointer min-h-[44px]"
+                            style={{ backgroundColor: cita.programa_color || '#2e7d32' }}
+                          >
+                            <span className="block text-[11px] leading-tight font-semibold">
+                              {slot.hora_inicio} - {slot.hora_fin}
+                            </span>
+                            <span className="block text-[11px] leading-tight truncate">
+                              {cita.alumno_nombre || 'Cita agendada'}
+                            </span>
+                          </button>
+                        );
+                      }
+
+                      // Slot disponible → abre modal para AGENDAR MANUALMENTE
+                      return (
+                        <button
+                          key={slot.id}
+                          onClick={() => {
+                            setSlotParaAgendar(slot);
+                            setShowAgendar(true);
+                          }}
+                          title={`${slot.hora_inicio} - ${slot.hora_fin} (clic para agendar)`}
+                          className="w-full rounded-md border border-primary-500 bg-[#e8f5e9] hover:bg-[#dcedc8] text-primary-800 hover:shadow-md transition text-left shadow-sm min-h-[44px]"
+                        >
+                          <span className="block text-[11px] leading-tight px-2 pt-2 font-medium text-primary-900">
+                            {slot.hora_inicio} - {slot.hora_fin}
+                          </span>
+                          <span className="block text-[10px] leading-tight px-2 pb-1 text-primary-600">
+                            Disponible
+                          </span>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-
-          {/* Cuerpo del grid */}
-          <div className="grid" style={{ gridTemplateColumns: '80px repeat(5, 1fr)' }}>
-            {/* Columna de horas */}
-            <div className="border-t border-gray-200 relative min-h-[480px]">
-              {marcas.map((h) => (
-                <div
-                  key={h}
-                  className="absolute w-full border-t border-gray-100 text-xs text-gray-400 px-2 pt-0.5"
-                  style={{ top: `${((h * 60 - horaMin) / totalMinutos) * 100}%` }}
-                >
-                  {String(h).padStart(2, '0')}:00
-                </div>
-              ))}
-            </div>
-
-            {/* Columnas de los días */}
-            {slotsPorDia.map((slotsDia, diaIdx) => (
-              <div key={diaIdx} className="border-t border-l border-gray-200 relative min-h-[480px]">
-                {slotsDia.map((slot) => {
-                  const cita = citasPorSlot[slot.id];
-                  const alturaPct = (slot.duracion_minutos / totalMinutos) * 100;
-                  const topPct = ((horaAMinutos(slot.hora_inicio) - horaMin) / totalMinutos) * 100;
-
-                  // Slot ocupado con cita → abre el modal de gestión
-                  if (!slot.disponible && cita) {
-                    return (
-                      <button
-                        key={slot.id}
-                        onClick={() => setCitaSeleccionada(cita)}
-                        className="absolute left-1 right-1 rounded-md px-1 py-1 text-left text-white hover:brightness-110 hover:scale-[1.02] transition shadow"
-                        style={{
-                          top: `${topPct}%`,
-                          height: `${alturaPct}%`,
-                          backgroundColor: cita.programa_color || '#2e7d32',
-                        }}
-                        title={`${slot.hora_inicio} - ${slot.hora_fin}`}
-                      >
-                        <span className="block text-[11px] leading-tight font-semibold">
-                          {slot.hora_inicio}
-                        </span>
-                        <span className="block text-[11px] leading-tight truncate">
-                          {cita.alumno_nombre}
-                        </span>
-                      </button>
-                    );
-                  }
-
-                  // Slot disponible → abre modal para AGENDAR MANUALMENTE
-                  return (
-                    <button
-                      key={slot.id}
-                      onClick={() => {
-                        setSlotParaAgendar(slot);
-                        setShowAgendar(true);
-                      }}
-                      className="absolute left-1 right-1 rounded-md border border-primary-500 bg-[#e8f5e9] text-primary-800 hover:shadow-md hover:scale-[1.02] transition shadow-sm"
-                      style={{ top: `${topPct}%`, height: `${alturaPct}%` }}
-                      title={`${slot.hora_inicio} - ${slot.hora_fin}`}
-                    >
-                      <span className="block text-[11px] leading-tight px-1 pt-1 font-medium text-primary-900">
-                        {slot.hora_inicio} - {slot.hora_fin}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       )}
 

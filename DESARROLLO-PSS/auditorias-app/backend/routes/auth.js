@@ -23,4 +23,7 @@ router.post('/forgot-password', authController.forgotPassword);
 // POST /api/auth/reset-password - Establecer nueva contraseña
 router.post('/reset-password', authController.resetPassword);
 
+// POST /api/auth/change-password - Cambiar contraseña estando autenticado
+router.post('/change-password', verifyToken, authController.changePassword);
+
 module.exports = router;

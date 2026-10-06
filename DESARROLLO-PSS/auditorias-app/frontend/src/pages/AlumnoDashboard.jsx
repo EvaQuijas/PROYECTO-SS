@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { CalendarDays, BookOpen, LogOut, GraduationCap, Megaphone } from 'lucide-react';
+import {
+  CalendarDays,
+  BookOpen,
+  LogOut,
+  GraduationCap,
+  Megaphone,
+  UserCog,
+} from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import CalendarioAlumno from '../components/Calendario/CalendarioAlumno';
 import MisCitas from '../components/Citas/MisCitas';
 import AvisosAlumno from '../components/avisos/AvisosAlumno';
+import ChangePasswordModal from '../components/perfil/ChangePasswordModal';
 
 /**
  * Página principal del alumno con navegación por pestañas
@@ -11,6 +19,7 @@ import AvisosAlumno from '../components/avisos/AvisosAlumno';
 export default function AlumnoDashboard() {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('calendario');
+  const [showPerfil, setShowPerfil] = useState(false);
 
   const tabs = [
     { id: 'calendario', label: 'Calendario', icon: CalendarDays },
@@ -51,6 +60,14 @@ export default function AlumnoDashboard() {
           <div className="flex items-center gap-4">
             <span className="text-sm text-primary-100">Hola, {user?.nombre}</span>
             <button
+              onClick={() => setShowPerfil(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary-700 text-white text-sm hover:bg-primary-800 transition"
+              title="Cambiar mi contraseña"
+            >
+              <UserCog className="w-4 h-4" />
+              Mi perfil
+            </button>
+            <button
               onClick={logout}
               className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary-700 text-white text-sm hover:bg-primary-800 transition"
             >
@@ -87,6 +104,9 @@ export default function AlumnoDashboard() {
 
       {/* Contenido de la pestaña */}
       <main className="max-w-7xl mx-auto px-4 py-8">{renderContent()}</main>
+
+      {/* Modal de cambio de contraseña */}
+      {showPerfil && <ChangePasswordModal onClose={() => setShowPerfil(false)} />}
     </div>
   );
 }

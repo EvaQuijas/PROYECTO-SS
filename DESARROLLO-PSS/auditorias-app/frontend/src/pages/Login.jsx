@@ -105,17 +105,6 @@ export default function Login() {
             </Link>
           </div>
         </form>
-
-        <div className="mt-6 text-sm text-gray-500 text-center">
-          <p>Credenciales de prueba:</p>
-          <p className="mt-1">
-            Coordinador: <code>coordinador@institucion.edu</code> /{' '}
-            <code>123456</code>
-          </p>
-          <p>
-            Alumno: <code>alumno@institucion.edu</code> / <code>123456</code>
-          </p>
-        </div>
       </div>
     </div>
   );
