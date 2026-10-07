@@ -4,7 +4,7 @@
   "description": "Backend del Sistema de Gestión de Auditorías de Seguimiento",
   "main": "src/index.js",
   "scripts": {
-    "start": "node src/index.js",
+    "start": "node server.js",
     "dev": "nodemon server.js",
     "db:init": "node config/init-db.js"
   },
