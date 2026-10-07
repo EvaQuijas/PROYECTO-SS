@@ -3,7 +3,6 @@ import { X, Trash2 } from 'lucide-react';
 
 // Modos disponibles
 const MODOS = [
-  { id: 'individual', label: 'Individual' },
   { id: 'rango', label: 'Por rango' },
   { id: 'dia', label: 'Día completo' },
 ];
@@ -14,13 +13,12 @@ const MODOS = [
 export default function EliminarSlotsModal({
   slotSeleccionado,
   onClose,
-  onEliminarIndividual,
   onEliminarRango,
   onEliminarDia,
 }) {
   const hoy = new Date().toISOString().split('T')[0];
 
-  const [modo, setModo] = useState(slotSeleccionado ? 'individual' : 'rango');
+  const [modo, setModo] = useState('rango');
   const [fechaInicio, setFechaInicio] = useState(hoy);
   const [fechaFin, setFechaFin] = useState(hoy);
   const [horaInicio, setHoraInicio] = useState('08:00');
@@ -35,9 +33,7 @@ export default function EliminarSlotsModal({
     setError('');
     setCargando(true);
     try {
-      if (modo === 'individual') {
-        await onEliminarIndividual(slotSeleccionado.id);
-      } else if (modo === 'rango') {
+     if (modo === 'rango') {
         await onEliminarRango({
           fecha_inicio: fechaInicio,
           fecha_fin: fechaFin,
@@ -97,21 +93,6 @@ export default function EliminarSlotsModal({
               </button>
             ))}
           </div>
-
-          {/* Modo individual */}
-          {modo === 'individual' && (
-            <div className="text-sm text-gray-700">
-              {slotSeleccionado ? (
-                <p>
-                  Eliminar el slot{' '}
-                  <span className="font-semibold">{slotSeleccionado.fecha}</span> de{' '}
-                  <span className="font-semibold">{slotSeleccionado.hora_inicio}</span>.
-                </p>
-              ) : (
-                <p>Selecciona primero un slot disponible en el calendario.</p>
-              )}
-            </div>
-          )}
 
           {/* Modo por rango */}
           {modo === 'rango' && (
@@ -182,7 +163,7 @@ export default function EliminarSlotsModal({
             </button>
             <button
               onClick={handleEliminar}
-              disabled={cargando || (modo === 'individual' && !slotSeleccionado)}
+              disabled={cargando}
               className="px-4 py-2 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50 transition"
             >
               {cargando ? 'Eliminando...' : 'Eliminar'}

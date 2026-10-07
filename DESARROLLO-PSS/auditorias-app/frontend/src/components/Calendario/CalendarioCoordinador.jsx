@@ -405,7 +405,6 @@ export default function CalendarioCoordinador() {
             setShowEliminar(false);
             setSlotParaEliminar(null);
           }}
-          onEliminarIndividual={handleEliminarIndividual}
           onEliminarRango={handleEliminarRango}
           onEliminarDia={handleEliminarDia}
         />
