@@ -118,11 +118,14 @@ export default function CalendarioCoordinador() {
   }, [cargarSemana]);
 
   // Cargar alumnos para el select de agendamiento manual
+  // Cargar alumnos para el select de agendamiento manual
   useEffect(() => {
     const cargarAlumnos = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:3001/api/alumnos', {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        
+        const response = await fetch(`${API_URL}/api/alumnos`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
