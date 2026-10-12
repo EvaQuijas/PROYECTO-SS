@@ -1,10 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, User, Calendar, Clock, Search } from 'lucide-react';
 
 export default function AgendarManualModal({ slot, alumnos, onClose, onAgendar }) {
   const [alumnoId, setAlumnoId] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Resetear alumnoId cuando cambia la búsqueda
+  useEffect(() => {
+    setAlumnoId('');
+  }, [busqueda]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -94,6 +99,9 @@ export default function AgendarManualModal({ slot, alumnos, onClose, onAgendar }
               />
               <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              {alumnosFiltrados.length} alumnos encontrados
+            </p>
           </div>
 
           {/* Selector de alumnos (filtrado) */}
