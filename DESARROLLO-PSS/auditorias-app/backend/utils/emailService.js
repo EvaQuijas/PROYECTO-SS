@@ -1,42 +1,54 @@
 /**
- * Servicio de envío de correos con Nodemailer
+ * Servicio de envío de correos con Resend
  *
  * Configuración tomada de las variables de entorno (.env):
- *   SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+ *   RESEND_API_KEY, SMTP_FROM
  *
  * Todas las funciones son "fire and forget": nunca lanzan excepción hacia el
  * llamador; los errores se registran en consola para no romper la respuesta HTTP.
  */
+const { Resend } = require('resend');
 
-const nodemailer = require('nodemailer');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-// =============================================
-// Configuración del transporter
-// =============================================
-const SMTP_USER = process.env.SMTP_USER;
 const SMTP_FROM =
-  process.env.SMTP_FROM || 'Sistema de Auditorías <no-reply@institucion.edu>';
+  process.env.SMTP_FROM || 'Sistema de Auditorías <onboarding@resend.dev>';
 
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    type: 'OAuth2',
-    user: SMTP_USER,
-    clientId: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    refreshToken: process.env.GOOGLE_REFRESH_TOKEN,
-  },
-});
+// =============================================
+// Envío genérico
+// =============================================
+
+async function sendEmail(to, subject, html) {
+  try {
+    if (!to) {
+      console.warn('⚠️  sendEmail: destinatario vacío, correo no enviado');
+      return null;
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: SMTP_FROM,
+      to: [to],
+      subject: subject,
+      html: html,
+    });
+
+    if (error) {
+      console.error(`❌ Error de Resend a ${to}:`, error.message);
+      return null;
+    }
+
+    console.log(`📧 Correo enviado a ${to} (id: ${data.id})`);
+    return data;
+  } catch (error) {
+    console.error(`❌ Error enviando correo a ${to}:`, error.message);
+    return null;
+  }
+}
 
 // =============================================
 // Utilidades de formato
 // =============================================
 
-/**
- * Escapa caracteres HTML para evitar inyección en las plantillas
- * @param {*} valor
- * @returns {string}
- */
 function escapar(valor) {
   if (valor === null || valor === undefined) return '';
   return String(valor)
@@ -47,11 +59,6 @@ function escapar(valor) {
     .replace(/'/g, '&#39;');
 }
 
-/**
- * Formatea una fecha (ISO o Date) a un texto legible en español
- * @param {string|Date} fecha
- * @returns {string}
- */
 function formatearFecha(fecha) {
   if (!fecha) return 'Por definir';
   const d = fecha instanceof Date ? fecha : new Date(fecha);
@@ -64,11 +71,6 @@ function formatearFecha(fecha) {
   });
 }
 
-/**
- * Formatea una hora (Date, "HH:MM:SS" o timestamp) a "HH:MM"
- * @param {string|Date} hora
- * @returns {string}
- */
 function formatearHora(hora) {
   if (!hora) return 'Por definir';
   if (hora instanceof Date) {
@@ -78,7 +80,6 @@ function formatearHora(hora) {
     });
   }
   const texto = String(hora);
-  // Si ya viene como "HH:MM:SS" o "HH:MM" se recorta sin usar zona horaria
   const match = texto.match(/^(\d{1,2}):(\d{2})/);
   if (match) {
     return `${match[1].padStart(2, '0')}:${match[2]}`;
@@ -88,11 +89,6 @@ function formatearHora(hora) {
   return d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
 
-/**
- * Envuelve el contenido en la plantilla base con la paleta verde
- * @param {{titulo: string, icono?: string, colorEncabezado?: string, contenido: string}} opciones
- * @returns {string} HTML completo
- */
 function plantillaBase({ titulo, icono = '', colorEncabezado = '#1b5e20', contenido }) {
   return `
   <div style="font-family: Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #c8e6c9; border-radius: 8px; overflow: hidden;">
@@ -108,11 +104,6 @@ function plantillaBase({ titulo, icono = '', colorEncabezado = '#1b5e20', conten
   </div>`;
 }
 
-/**
- * Bloque de detalle reutilizable (fecha, hora, programa)
- * @param {{fecha: string, hora: string, programa: string, colorBorde?: string}} datos
- * @returns {string}
- */
 function bloqueDetalle({ fecha, hora, programa, colorBorde = '#4caf50' }) {
   return `
     <div style="background: #ffffff; border-left: 4px solid ${colorBorde}; padding: 16px; margin: 16px 0; border-radius: 4px;">
@@ -123,49 +114,9 @@ function bloqueDetalle({ fecha, hora, programa, colorBorde = '#4caf50' }) {
 }
 
 // =============================================
-// Envío genérico
-// =============================================
-
-/**
- * Envía un correo genérico
- * @param {string} to - destinatario (o lista separada por comas)
- * @param {string} subject - asunto
- * @param {string} html - cuerpo en HTML
- * @returns {Promise<object|null>} info del envío o null si falló
- */
-async function sendEmail(to, subject, html) {
-  try {
-    if (!to) {
-      console.warn('⚠️  sendEmail: destinatario vacío, correo no enviado');
-      return null;
-    }
-
-    const info = await transporter.sendMail({
-      from: SMTP_FROM,
-      to,
-      subject,
-      html,
-    });
-
-    console.log(`📧 Correo enviado a ${to} (id: ${info.messageId})`);
-    return info;
-  } catch (error) {
-    console.error(`❌ Error enviando correo a ${to}:`, error.message);
-    return null;
-  }
-}
-
-// =============================================
 // Plantillas de notificación
 // =============================================
 
-/**
- * Notifica al alumno que su cita fue cancelada
- * @param {{nombre?: string, email: string}} alumno
- * @param {{fecha?: string, hora_inicio?: string, hora_fin?: string}} cita
- * @param {{nombre?: string}|string|null} programa
- * @returns {Promise<object|null>}
- */
 async function sendCitaCancelada(alumno, cita, programa) {
   const nombre = alumno?.nombre || 'Alumno';
   const programaNombre =
@@ -192,13 +143,6 @@ async function sendCitaCancelada(alumno, cita, programa) {
   return sendEmail(alumno?.email, '❌ Tu cita de auditoría fue cancelada', html);
 }
 
-/**
- * Notifica al alumno que el coordinador agendó una cita
- * @param {{nombre?: string, email: string}} alumno
- * @param {{fecha?: string, hora_inicio?: string, hora_fin?: string}} cita
- * @param {{nombre?: string}|string|null} programa
- * @returns {Promise<object|null>}
- */
 async function sendCitaAgendada(alumno, cita, programa) {
   const nombre = alumno?.nombre || 'Alumno';
   const programaNombre =
@@ -225,14 +169,6 @@ async function sendCitaAgendada(alumno, cita, programa) {
   return sendEmail(alumno?.email, '✅ Nueva cita de auditoría agendada', html);
 }
 
-/**
- * Notifica a una lista de alumnos sobre un nuevo aviso.
- * Envía un único correo con copia oculta (BCC) para no exponer los correos.
- * @param {Array<{nombre?: string, email: string}>} alumnos
- * @param {{titulo?: string, contenido?: string}} aviso
- * @param {{nombre?: string}|string|null} programa - null/'' => aviso global
- * @returns {Promise<object|null>}
- */
 async function sendAvisoNuevo(alumnos, aviso, programa) {
   try {
     const lista = Array.isArray(alumnos) ? alumnos : [];
@@ -246,9 +182,7 @@ async function sendAvisoNuevo(alumnos, aviso, programa) {
     }
 
     const programaNombre =
-      typeof programa === 'string'
-        ? programa
-        : programa?.nombre || null;
+      typeof programa === 'string' ? programa : programa?.nombre || null;
     const esGlobal = !programaNombre;
 
     const contenido = `
@@ -278,19 +212,24 @@ async function sendAvisoNuevo(alumnos, aviso, programa) {
       contenido,
     });
 
-    // Se envía al propio remitente y a los alumnos en BCC (privacidad)
-    const info = await transporter.sendMail({
+    // Resend permite enviar a múltiples destinatarios en un solo correo
+    const { data, error } = await resend.emails.send({
       from: SMTP_FROM,
-      to: SMTP_FROM,
-      bcc: destinatarios.join(', '),
+      to: [SMTP_FROM], // el remitente como destinatario principal
+      bcc: destinatarios, // los alumnos en BCC (privacidad)
       subject: `📢 Nuevo aviso: ${aviso?.titulo || 'Aviso'}`,
       html,
     });
 
+    if (error) {
+      console.error('❌ Error de Resend al enviar aviso:', error.message);
+      return null;
+    }
+
     console.log(
-      `📧 Aviso enviado a ${destinatarios.length} alumno(s) (id: ${info.messageId})`
+      `📧 Aviso enviado a ${destinatarios.length} alumno(s) (id: ${data.id})`
     );
-    return info;
+    return data;
   } catch (error) {
     console.error('❌ Error enviando aviso por correo:', error.message);
     return null;
@@ -298,7 +237,6 @@ async function sendAvisoNuevo(alumnos, aviso, programa) {
 }
 
 module.exports = {
-  transporter,
   sendEmail,
   sendCitaCancelada,
   sendCitaAgendada,
@@ -307,4 +245,3 @@ module.exports = {
   formatearHora,
   plantillaBase,
 };
-
