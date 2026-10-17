@@ -1,18 +1,12 @@
 /**
- * Servicio de envío de correos con Resend
- *
- * Configuración tomada de las variables de entorno (.env):
- *   RESEND_API_KEY, SMTP_FROM
- *
- * Todas las funciones son "fire and forget": nunca lanzan excepción hacia el
- * llamador; los errores se registran en consola para no romper la respuesta HTTP.
+ * Servicio de envío de correos con SendGrid
  */
-const { Resend } = require('resend');
+const sgMail = require('@sendgrid/mail');
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const SMTP_FROM =
-  process.env.SMTP_FROM || 'Sistema de Auditorías <onboarding@resend.dev>';
+  process.env.SMTP_FROM || 'Sistema de Auditorías <auditoriasserviciosocial@gmail.com>';
 
 // =============================================
 // Envío genérico
@@ -25,28 +19,27 @@ async function sendEmail(to, subject, html) {
       return null;
     }
 
-    const { data, error } = await resend.emails.send({
+    const msg = {
+      to,
       from: SMTP_FROM,
-      to: [to],
-      subject: subject,
-      html: html,
-    });
+      subject,
+      html,
+    };
 
-    if (error) {
-      console.error(`❌ Error de Resend a ${to}:`, error.message);
-      return null;
-    }
-
-    console.log(`📧 Correo enviado a ${to} (id: ${data.id})`);
-    return data;
+    await sgMail.send(msg);
+    console.log(`📧 Correo enviado a ${to}`);
+    return { success: true };
   } catch (error) {
     console.error(`❌ Error enviando correo a ${to}:`, error.message);
+    if (error.response) {
+      console.error('Detalle:', error.response.body);
+    }
     return null;
   }
 }
 
 // =============================================
-// Utilidades de formato
+// Utilidades de formato (SIN CAMBIOS)
 // =============================================
 
 function escapar(valor) {
@@ -114,7 +107,7 @@ function bloqueDetalle({ fecha, hora, programa, colorBorde = '#4caf50' }) {
 }
 
 // =============================================
-// Plantillas de notificación
+// Plantillas de notificación (SIN CAMBIOS)
 // =============================================
 
 async function sendCitaCancelada(alumno, cita, programa) {
@@ -172,12 +165,10 @@ async function sendCitaAgendada(alumno, cita, programa) {
 async function sendAvisoNuevo(alumnos, aviso, programa) {
   try {
     const lista = Array.isArray(alumnos) ? alumnos : [];
-    const destinatarios = lista
-      .map((a) => a?.email)
-      .filter((email) => !!email);
+    const destinatarios = lista.map((a) => a?.email).filter((email) => !!email);
 
     if (destinatarios.length === 0) {
-      console.warn('⚠️  sendAvisoNuevo: no hay destinatarios, correo no enviado');
+      console.warn('⚠️  sendAvisoNuevo: no hay destinatarios');
       return null;
     }
 
@@ -187,21 +178,11 @@ async function sendAvisoNuevo(alumnos, aviso, programa) {
 
     const contenido = `
       <p style="margin-top: 0;">Hola,</p>
-      <p>Se ha publicado un nuevo aviso${
-        esGlobal ? ' <strong>para todos los programas</strong>' : ''
-      }.</p>
-      <div style="background: #ffffff; border-left: 4px solid ${
-        esGlobal ? '#6b7280' : '#4caf50'
-      }; padding: 16px; margin: 16px 0; border-radius: 4px;">
-        <p style="margin: 4px 0;"><strong>📢 Título:</strong> ${escapar(
-          aviso?.titulo
-        )}</p>
-        <p style="margin: 4px 0;"><strong>📚 Programa:</strong> ${escapar(
-          programaNombre || 'Global'
-        )}</p>
-        <p style="margin: 12px 0 0 0; white-space: pre-wrap;">${escapar(
-          aviso?.contenido
-        )}</p>
+      <p>Se ha publicado un nuevo aviso${esGlobal ? ' <strong>para todos los programas</strong>' : ''}.</p>
+      <div style="background: #ffffff; border-left: 4px solid ${esGlobal ? '#6b7280' : '#4caf50'}; padding: 16px; margin: 16px 0; border-radius: 4px;">
+        <p style="margin: 4px 0;"><strong>📢 Título:</strong> ${escapar(aviso?.titulo)}</p>
+        <p style="margin: 4px 0;"><strong>📚 Programa:</strong> ${escapar(programaNombre || 'Global')}</p>
+        <p style="margin: 12px 0 0 0; white-space: pre-wrap;">${escapar(aviso?.contenido)}</p>
       </div>
       <p>Ingresa al sistema para consultar los detalles.</p>`;
 
@@ -212,26 +193,18 @@ async function sendAvisoNuevo(alumnos, aviso, programa) {
       contenido,
     });
 
-    // Resend permite enviar a múltiples destinatarios en un solo correo
-    const { data, error } = await resend.emails.send({
+    const msg = {
+      to: destinatarios, // SendGrid permite múltiples destinatarios
       from: SMTP_FROM,
-      to: [SMTP_FROM], // el remitente como destinatario principal
-      bcc: destinatarios, // los alumnos en BCC (privacidad)
       subject: `📢 Nuevo aviso: ${aviso?.titulo || 'Aviso'}`,
       html,
-    });
+    };
 
-    if (error) {
-      console.error('❌ Error de Resend al enviar aviso:', error.message);
-      return null;
-    }
-
-    console.log(
-      `📧 Aviso enviado a ${destinatarios.length} alumno(s) (id: ${data.id})`
-    );
-    return data;
+    await sgMail.send(msg);
+    console.log(`📧 Aviso enviado a ${destinatarios.length} alumno(s)`);
+    return { success: true };
   } catch (error) {
-    console.error('❌ Error enviando aviso por correo:', error.message);
+    console.error('❌ Error enviando aviso:', error.message);
     return null;
   }
 }
