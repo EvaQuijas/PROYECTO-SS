@@ -1,80 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Download, Calendar, Clock, User, BookOpen, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { Download, Calendar, Clock, User, BookOpen, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import * as citaService from '../../services/citaService';
-
-/**
- * Modal de confirmación para limpiar el historial de citas
- * (doble confirmación: el usuario debe marcar la casilla antes de confirmar)
- */
-function ConfirmLimpiarHistorialModal({ total, deleting, onCancel, onConfirm }) {
-  const [confirmado, setConfirmado] = useState(false);
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-      onClick={onCancel}
-    >
-      <div
-        className="bg-white rounded-lg shadow-xl w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-6 py-4 bg-red-600 rounded-t-lg">
-          <h3 className="text-lg font-semibold text-white">Limpiar historial de citas</h3>
-          <AlertTriangle className="w-5 h-5 text-white" />
-        </div>
-        <div className="px-6 py-6">
-          <div className="flex items-start gap-3 mb-4">
-            <AlertTriangle className="w-8 h-8 text-red-600 shrink-0" />
-            <p className="text-gray-700">
-              Se eliminarán las citas con estado <strong>asistió</strong>,{' '}
-              <strong>inasistencia</strong> y <strong>cancelada</strong>.
-              <br />
-              <span className="text-sm text-red-600 font-semibold">
-                Esta acción NO se puede deshacer.
-              </span>
-            </p>
-          </div>
-
-          <p className="text-sm text-gray-500 mb-4">
-            Total de citas a eliminar: <strong>{total}</strong>
-          </p>
-          <p className="text-xs text-gray-400 mb-4">
-            Las citas pendientes se conservan y los slots quedarán disponibles de nuevo.
-          </p>
-
-          <label className="flex items-start gap-2 text-sm text-gray-700 bg-red-50 border border-red-200 rounded-md px-3 py-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={confirmado}
-              onChange={(e) => setConfirmado(e.target.checked)}
-              className="mt-0.5 accent-red-600"
-            />
-            <span>
-              Confirmo que deseo eliminar las citas finalizadas del historial.
-            </span>
-          </label>
-
-          <div className="flex justify-end gap-3 mt-6">
-            <button
-              onClick={onCancel}
-              className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-100 transition"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={onConfirm}
-              disabled={deleting || !confirmado || total === 0}
-              className="px-4 py-2 rounded-md bg-red-600 text-white text-sm hover:bg-red-700 disabled:opacity-50 transition"
-            >
-              {deleting ? 'Eliminando...' : 'Sí, limpiar historial'}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default function CitasList() {
   const [citas, setCitas] = useState([]);
@@ -82,10 +9,9 @@ export default function CitasList() {
   const [error, setError] = useState('');
   const [filtro, setFiltro] = useState('todas'); // todas, pendiente, asistio, inasistencia, cancelada
 
-  // Limpieza de historial
-  const [showLimpiar, setShowLimpiar] = useState(false);
-  const [limpiando, setLimpiando] = useState(false);
-  const [mensaje, setMensaje] = useState('');
+  // Estados para el rango de fechas del Excel
+  const [fechaInicio, setFechaInicio] = useState('');
+  const [fechaFin, setFechaFin] = useState('');
 
   useEffect(() => {
     cargarCitas();
@@ -104,12 +30,6 @@ export default function CitasList() {
     }
   }
 
-  // Filtrar citas por estado
-  const citasFiltradas = citas.filter((cita) => {
-    if (filtro === 'todas') return true;
-    return cita.estado === filtro;
-  });
-
   // Formatear fecha
   const formatearFecha = (fecha) => {
     if (!fecha) return '';
@@ -122,15 +42,34 @@ export default function CitasList() {
     });
   };
 
+  // 1. Filtrar por estado (botones)
+  const citasFiltradasPorEstado = citas.filter((cita) => {
+    if (filtro === 'todas') return true;
+    return cita.estado === filtro;
+  });
+
+  // 2. Filtrar por rango de fechas (para la tabla y el Excel)
+  const citasFiltradasFinal = citasFiltradasPorEstado.filter((cita) => {
+    if (!fechaInicio && !fechaFin) return true;
+    
+    // Normalizar la fecha de la cita a YYYY-MM-DD
+    const fechaCita = new Date(cita.fecha).toISOString().split('T')[0];
+    
+    if (fechaInicio && fechaCita < fechaInicio) return false;
+    if (fechaFin && fechaCita > fechaFin) return false;
+    
+    return true;
+  });
+
   // Exportar a Excel
   const exportarExcel = () => {
-    if (citasFiltradas.length === 0) {
-      alert('No hay citas para exportar');
+    if (citasFiltradasFinal.length === 0) {
+      alert('No hay citas para exportar en ese rango de fechas');
       return;
     }
 
     // Preparar datos para Excel
-    const datosExcel = citasFiltradas.map((cita) => ({
+    const datosExcel = citasFiltradasFinal.map((cita) => ({
       'Alumno': cita.alumno_nombre || 'Sin nombre',
       'Email': cita.alumno_email || 'Sin email',
       'Programa': cita.programa_nombre || 'Sin programa',
@@ -146,41 +85,16 @@ export default function CitasList() {
     const ws = XLSX.utils.json_to_sheet(datosExcel);
     XLSX.utils.book_append_sheet(wb, ws, 'Citas');
 
-    // Generar nombre del archivo con fecha
+    // Generar nombre del archivo
     const fechaActual = new Date().toISOString().split('T')[0];
-    XLSX.writeFile(wb, `citas_agendadas_${fechaActual}.xlsx`);
+    const nombreArchivo = `citas_${fechaInicio || 'inicio'}_${fechaFin || 'fin'}_${fechaActual}.xlsx`;
+    XLSX.writeFile(wb, nombreArchivo);
   };
 
-  // Contar por estado
+  // Contar por estado (para los botones)
   const contarPorEstado = (estado) => {
     return citas.filter((c) => c.estado === estado).length;
   };
-
-  // Citas finalizadas (las que elimina "Limpiar historial")
-  const totalFinalizadas =
-    contarPorEstado('asistio') +
-    contarPorEstado('inasistencia') +
-    contarPorEstado('cancelada');
-
-  /**
-   * Elimina del historial las citas finalizadas y recarga la lista
-   */
-  async function handleLimpiarHistorial() {
-    setLimpiando(true);
-    setError('');
-    setMensaje('');
-    try {
-      const result = await citaService.deleteHistorial();
-      setShowLimpiar(false);
-      setMensaje(result?.message || 'Historial de citas eliminado correctamente');
-      await cargarCitas();
-    } catch (err) {
-      setError(err.message);
-      setShowLimpiar(false);
-    } finally {
-      setLimpiando(false);
-    }
-  }
 
   if (loading) {
     return (
@@ -193,40 +107,42 @@ export default function CitasList() {
 
   return (
     <div>
-      {/* Encabezado */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-6">
+      {/* Encabezado y Herramientas */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-lg font-semibold text-primary-900">Citas agendadas</h2>
           <p className="text-sm text-gray-500">
-            Total: {citas.length} citas
+            Mostrando: {citasFiltradasFinal.length} citas
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        {/* Controles de Exportación */}
+        <div className="flex flex-wrap items-end gap-2">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Desde</label>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">Hasta</label>
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            />
+          </div>
+          
           <button
             onClick={exportarExcel}
-            className="flex items-center gap-2 px-3 py-2 rounded-md bg-primary-800 text-white text-sm font-medium hover:bg-primary-900 transition"
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-primary-800 text-white text-sm font-medium hover:bg-primary-900 transition h-[38px]"
           >
             <Download className="w-4 h-4" />
             Exportar a Excel
-          </button>
-
-          {/* 🗑️ BOTÓN LIMPIAR HISTORIAL */}
-          <button
-            onClick={() => {
-              setMensaje('');
-              setShowLimpiar(true);
-            }}
-            disabled={totalFinalizadas === 0}
-            title={
-              totalFinalizadas === 0
-                ? 'No hay citas finalizadas para eliminar'
-                : 'Eliminar citas finalizadas del historial'
-            }
-            className="flex items-center gap-2 px-3 py-2 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <Trash2 className="w-4 h-4" />
-            Limpiar historial
           </button>
         </div>
       </div>
@@ -292,28 +208,12 @@ export default function CitasList() {
         </div>
       )}
 
-      {/* Mensaje de éxito (limpieza de historial) */}
-      {mensaje && !error && (
-        <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-md px-4 py-3 mb-4 flex items-center justify-between gap-3">
-          <span>{mensaje}</span>
-          <button
-            onClick={() => setMensaje('')}
-            className="text-green-700 hover:text-green-900 font-semibold"
-            aria-label="Cerrar mensaje"
-          >
-            ×
-          </button>
-        </div>
-      )}
-
       {/* Tabla de citas */}
-      {citasFiltradas.length === 0 ? (
+      {citasFiltradasFinal.length === 0 ? (
         <div className="bg-[#f1f8e9] border border-primary-100 rounded-lg p-12 text-center">
           <BookOpen className="w-10 h-10 mx-auto text-primary-300 mb-3" />
           <p className="text-gray-500">
-            {filtro === 'todas'
-              ? 'No hay citas agendadas'
-              : `No hay citas con estado "${filtro}"`}
+            No hay citas que coincidan con los filtros seleccionados.
           </p>
         </div>
       ) : (
@@ -343,7 +243,7 @@ export default function CitasList() {
                 </tr>
               </thead>
               <tbody>
-                {citasFiltradas.map((cita, idx) => (
+                {citasFiltradasFinal.map((cita, idx) => (
                   <tr
                     key={cita.id}
                     className={`border-b border-gray-100 hover:bg-gray-50 transition ${
@@ -391,16 +291,6 @@ export default function CitasList() {
             </table>
           </div>
         </div>
-      )}
-
-      {/* Modal de confirmación de limpieza de historial */}
-      {showLimpiar && (
-        <ConfirmLimpiarHistorialModal
-          total={totalFinalizadas}
-          deleting={limpiando}
-          onCancel={() => setShowLimpiar(false)}
-          onConfirm={handleLimpiarHistorial}
-        />
       )}
     </div>
   );
