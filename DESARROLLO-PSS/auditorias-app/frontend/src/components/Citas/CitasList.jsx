@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download, Calendar, Clock, User, BookOpen, Loader2 } from 'lucide-react';
+import { Download, Calendar, Clock, User, BookOpen, Loader2, Trash2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import * as citaService from '../../services/citaService';
 
@@ -8,6 +8,7 @@ export default function CitasList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filtro, setFiltro] = useState('todas'); // todas, pendiente, asistio, inasistencia, cancelada
+  const [limpiando, setLimpiando] = useState(false);
 
   // Estados para el rango de fechas del Excel
   const [fechaInicio, setFechaInicio] = useState('');
@@ -91,6 +92,38 @@ export default function CitasList() {
     XLSX.writeFile(wb, nombreArchivo);
   };
 
+  // Limpiar historial: elimina las citas finalizadas (asistió, inasistencia, cancelada)
+  const limpiarHistorial = async () => {
+    const finalizadas = citas.filter((cita) =>
+      ['asistio', 'inasistencia', 'cancelada'].includes(cita.estado)
+    ).length;
+
+    if (finalizadas === 0) {
+      alert('No hay citas finalizadas (asistió, inasistencia o cancelada) para eliminar.');
+      return;
+    }
+
+    const confirmado = window.confirm(
+      `¿Eliminar del historial ${finalizadas} cita(s) finalizada(s)?\n\n` +
+        'Se borrarán las citas con estado: asistió, inasistencia y cancelada. ' +
+        'Las citas pendientes se conservan. Esta acción no se puede deshacer.'
+    );
+
+    if (!confirmado) return;
+
+    setLimpiando(true);
+    setError('');
+    try {
+      const resultado = await citaService.deleteHistorial();
+      alert(resultado?.message || 'Historial limpiado correctamente');
+      await cargarCitas();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLimpiando(false);
+    }
+  };
+
   // Contar por estado (para los botones)
   const contarPorEstado = (estado) => {
     return citas.filter((c) => c.estado === estado).length;
@@ -143,6 +176,20 @@ export default function CitasList() {
           >
             <Download className="w-4 h-4" />
             Exportar a Excel
+          </button>
+
+          <button
+            onClick={limpiarHistorial}
+            disabled={limpiando}
+            title="Elimina las citas finalizadas (asistió, inasistencia, cancelada)"
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition h-[38px] disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            {limpiando ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Trash2 className="w-4 h-4" />
+            )}
+            {limpiando ? 'Limpiando...' : 'Limpiar historial'}
           </button>
         </div>
       </div>

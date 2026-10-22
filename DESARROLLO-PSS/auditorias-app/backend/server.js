@@ -11,6 +11,7 @@ const citaRoutes = require('./routes/citas');
 const avisoRoutes = require('./routes/avisos');
 const coordinadorRoutes = require('./routes/coordinadores');
 const errorHandler = require('./middleware/errorHandler');
+const { iniciarCronJobs } = require('./utils/cronJobs');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -49,4 +50,7 @@ app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/api/health`);
   console.log(`   Login: http://localhost:${PORT}/api/auth/login`);
+
+  // Registrar las tareas programadas (limpieza semanal de slots)
+  iniciarCronJobs();
 });

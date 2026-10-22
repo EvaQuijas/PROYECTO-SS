@@ -80,21 +80,25 @@ async function getGlobales(req, res, next) {
 
 /**
  * GET /api/avisos/mis-avisos
- * PARA ALUMNOS: obtiene avisos globales + avisos del programa del alumno
+ * PARA ALUMNOS: obtiene avisos globales + avisos del programa del alumno,
+ * pero SOLO los creados por el coordinador al que pertenece el alumno.
+ * (Los avisos globales tienen programa_id = NULL, pero sí tienen coordinador_id)
  */
 async function getParaAlumno(req, res, next) {
   try {
     const alumno_programa_id = req.user.programa_id;
+    const alumno_coordinador_id = req.user.coordinador_id;
 
     const result = await pool.query(
       `SELECT a.id, a.titulo, a.contenido, a.programa_id, a.coordinador_id, a.created_at,
               p.nombre AS programa_nombre, p.color_hex AS programa_color
        FROM avisos a
        LEFT JOIN programas p ON a.programa_id = p.id
-       WHERE (a.programa_id IS NULL
+       WHERE a.coordinador_id = $2
+         AND (a.programa_id IS NULL
               OR a.programa_id = $1)
        ORDER BY a.created_at DESC`,
-      [alumno_programa_id]
+      [alumno_programa_id, alumno_coordinador_id]
     );
 
     return res.status(200).json({
