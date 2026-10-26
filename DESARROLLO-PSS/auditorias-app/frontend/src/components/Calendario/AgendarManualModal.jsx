@@ -41,13 +41,22 @@ export default function AgendarManualModal({ slot, alumnos, onClose, onAgendar }
   });
 
   const fechaFormateada = slot?.fecha 
-    ? new Date(slot.fecha).toLocaleDateString('es-MX', {
+  ? (() => {
+      // Tomamos solo la parte de la fecha (YYYY-MM-DD) para evitar el desfase de zona horaria
+      const fechaStr = slot.fecha.split('T')[0];
+      const [year, month, day] = fechaStr.split('-').map(Number);
+      
+      // Creamos la fecha en la zona horaria LOCAL, no en UTC
+      const date = new Date(year, month - 1, day);
+      
+      return date.toLocaleDateString('es-MX', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
-      })
-    : '';
+      });
+    })()
+  : '';
 
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
