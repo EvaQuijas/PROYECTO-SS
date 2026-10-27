@@ -32,9 +32,15 @@ export default function CitasList() {
   }
 
   // Formatear fecha
+    // Formatear fecha (CORREGIDO para zona horaria)
   const formatearFecha = (fecha) => {
     if (!fecha) return '';
-    const date = new Date(fecha);
+    
+    // Tomamos solo el YYYY-MM-DD para evitar el desfase
+    const fechaStr = String(fecha).split('T')[0];
+    const [year, month, day] = fechaStr.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    
     return date.toLocaleDateString('es-MX', {
       weekday: 'long',
       year: 'numeric',
