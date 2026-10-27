@@ -59,7 +59,7 @@ export default function AgendarManualModal({ slot, alumnos, onClose, onAgendar }
   : '';
   console.log('📅 Slot fecha original:', slot.fecha);
   console.log('📅 Slot fecha formateada:', fechaFormateada);
-
+  alert("FECHA ORIGINAL: " + slot.fecha + " | FECHA FORMATEADA: " + fechaFormateada);
   return (
     <div className="fixed inset-0 flex items-center justify-center z-50 pointer-events-none">
       <div 
